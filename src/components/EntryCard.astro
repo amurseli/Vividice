@@ -1,0 +1,182 @@
+---
+/*
+  Card genérica para listados de entries de la wiki (lugares, personajes,
+  ...). Es deliberadamente agnóstica del collection: recibe props simples,
+  no la entry. Así cualquier página la puede usar mapeando sus campos.
+
+  Variantes:
+    - default: card compacta para grid
+    - hero:    card full-width destacada (ej: la home de Vivídice)
+
+  Image handling:
+    - Si imagen empieza con http(s):// → se usa como URL externa
+    - Si no, se resuelve relativa al BASE_URL (sirve archivos de /public)
+    - Si no hay imagen, la card cae en layout text-only
+*/
+type Props = {
+  href: string;
+  title: string;
+  kicker?: string | null;
+  description?: string | null;
+  imagen?: string | null;
+  imagenAlt?: string;
+  variant?: 'default' | 'hero';
+};
+
+const {
+  href,
+  title,
+  kicker,
+  description,
+  imagen,
+  imagenAlt,
+  variant = 'default',
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const imageSrc = imagen
+  ? imagen.startsWith('http') ? imagen : `${base}${imagen}`.replace(/\/\//g, '/')
+  : null;
+---
+
+<a href={href} class:list={['entry-card', `entry-card--${variant}`, { 'entry-card--with-image': imageSrc }]}>
+  {imageSrc && (
+    <div class="entry-card__media">
+      <img src={imageSrc} alt={imagenAlt ?? title} loading="lazy" />
+    </div>
+  )}
+  <div class="entry-card__body">
+    {kicker && <p class="entry-card__kicker">{kicker}</p>}
+    <h2 class="entry-card__title">{title}</h2>
+    {description && <p class="entry-card__desc">{description}</p>}
+  </div>
+  <span class="entry-card__cta" aria-hidden="true">→</span>
+</a>
+
+<style>
+  .entry-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    color: var(--color-text);
+    text-decoration: none;
+    overflow: hidden; /* el border-radius corta la imagen */
+    position: relative;
+    transition: border-color 120ms ease, transform 120ms ease;
+  }
+
+  .entry-card:hover {
+    border-color: var(--color-accent);
+    text-decoration: none;
+    transform: translateY(-2px);
+  }
+
+  .entry-card__media {
+    /* aspect-ratio define la proporción sin importar el tamaño real
+       de la imagen. object-fit: cover llena el espacio sin deformar. */
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+
+  .entry-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .entry-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+  }
+
+  .entry-card--with-image .entry-card__body {
+    padding-top: var(--space-3);
+  }
+
+  .entry-card__kicker {
+    margin: 0;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.7rem;
+  }
+
+  .entry-card__title {
+    margin: 0;
+    font-family: var(--font-serif);
+  }
+
+  .entry-card__desc {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+  }
+
+  .entry-card__cta {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    color: var(--color-text-muted);
+    transition: color 120ms ease, transform 120ms ease;
+  }
+
+  /* Cuando hay imagen, la flecha la pisaría — la sacamos. */
+  .entry-card--with-image .entry-card__cta {
+    display: none;
+  }
+
+  .entry-card:hover .entry-card__cta {
+    color: var(--color-accent);
+    transform: translateX(2px);
+  }
+
+  /* Variantes */
+  .entry-card--default .entry-card__title {
+    font-size: 1.4rem;
+  }
+
+  .entry-card--hero {
+    background: linear-gradient(
+      135deg,
+      var(--color-surface) 0%,
+      color-mix(in srgb, var(--color-surface) 85%, var(--color-accent)) 100%
+    );
+  }
+
+  .entry-card--hero .entry-card__title {
+    font-size: 2.5rem;
+  }
+
+  .entry-card--hero .entry-card__desc {
+    font-size: 1.1rem;
+    max-width: 60ch;
+  }
+
+  /* Hero sin imagen: padding generoso */
+  .entry-card--hero:not(.entry-card--with-image) .entry-card__body {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  /* Hero con imagen en desktop: split horizontal (imagen izq, texto der) */
+  @media (min-width: 720px) {
+    .entry-card--hero.entry-card--with-image {
+      flex-direction: row;
+    }
+    .entry-card--hero.entry-card--with-image .entry-card__media {
+      flex: 0 0 45%;
+      aspect-ratio: auto; /* deja que el alto lo defina el contenido */
+    }
+    .entry-card--hero.entry-card--with-image .entry-card__body {
+      flex: 1;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+  }
+</style>

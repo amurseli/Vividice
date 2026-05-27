@@ -1,68 +1,73 @@
 ---
-/*
-  Página índice: lista todos los lugares.
-  getCollection('lugares') lee TODOS los .md de src/content/lugares/
-  y devuelve un array tipado.
-*/
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import EntryCard from '../../components/EntryCard.astro';
 
-const lugares = await getCollection('lugares');
+type Lugar = CollectionEntry<'lugares'>;
 
-/* Ordenamos alfabéticamente por nombre */
-lugares.sort((a, b) => a.data.nombre.localeCompare(b.data.nombre));
+const HERO_ID = 'vivídice';
+
+const todos = await getCollection('lugares');
+const hero = todos.find((l: Lugar) => l.id === HERO_ID);
+const resto = todos
+  .filter((l: Lugar) => l.id !== HERO_ID)
+  .sort((a: Lugar, b: Lugar) => a.data.nombre.localeCompare(b.data.nombre));
 
 const base = import.meta.env.BASE_URL;
+
+/* Mapping helper: traduce una entry a los props que EntryCard espera.
+   Esto deja la card 100% desacoplada del schema del collection. */
+function toCardProps(lugar: Lugar) {
+  const { nombre, tipo, region, descripcionCorta, imagen } = lugar.data;
+  const kicker = `${tipo}${region ? ` · ${region}` : ''}`;
+  return {
+    href: `${base}lugares/${lugar.id}`,
+    title: nombre,
+    kicker,
+    description: descripcionCorta,
+    imagen,
+    imagenAlt: nombre,
+  };
+}
 ---
 
 <BaseLayout title="Lugares">
   <h1>Lugares</h1>
-  <p>{lugares.length} lugares en el mundo de Vividice.</p>
+  <p class="intro">{todos.length} lugares en el mundo de Vividice.</p>
 
-  <ul class="lugar-list">
-    {
-      lugares.map((lugar) => (
-        <li>
-          <a href={`${base}lugares/${lugar.id}`}>
-            <strong>{lugar.data.nombre}</strong>
-            <span class="meta">{lugar.data.tipo}{lugar.data.region ? ` — ${lugar.data.region}` : ''}</span>
-            {lugar.data.descripcionCorta && (
-              <p>{lugar.data.descripcionCorta}</p>
-            )}
-          </a>
-        </li>
-      ))
-    }
-  </ul>
+  <div class="lugares-layout">
+    {hero && <EntryCard {...toCardProps(hero)} variant="hero" />}
+
+    {resto.length > 0 && (
+      <div class="lugares-grid">
+        {resto.map((lugar: Lugar) => <EntryCard {...toCardProps(lugar)} />)}
+      </div>
+    )}
+  </div>
 </BaseLayout>
 
 <style>
-  .lugar-list {
-    list-style: none;
-    padding: 0;
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+  }
+
+  .lugares-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .lugares-grid {
     display: grid;
-    gap: var(--space-3);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
   }
-  .lugar-list a {
-    display: block;
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    color: var(--color-text);
-  }
-  .lugar-list a:hover {
-    border-color: var(--color-accent);
-    text-decoration: none;
-  }
-  .meta {
-    display: block;
-    color: var(--color-text-muted);
-    font-size: 0.875rem;
-    margin-top: var(--space-1);
-  }
-  .lugar-list p {
-    margin: var(--space-2) 0 0;
-    color: var(--color-text-muted);
+
+  @media (max-width: 640px) {
+    .lugares-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

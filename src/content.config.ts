@@ -31,6 +31,10 @@ const lugares = defineCollection({
     region: z.string().nullish(),
     descripcionCorta: z.string().max(200).nullish(),
 
+    /* Ruta relativa a /public, ej: "lugares/axioma.jpg".
+       También acepta URLs absolutas (https://...). */
+    imagen: z.string().nullish(),
+
     /* aliases puede venir como [null] cuando Obsidian crea una entrada vacía
        en una lista. Filtramos nulls y devolvemos un array limpio. */
     aliases: z
