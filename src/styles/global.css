@@ -1,0 +1,67 @@
+/*
+  Variables globales: definidas una sola vez en :root y reutilizables
+  en todo el sitio con var(--nombre). Cambiás el valor acá y se actualiza
+  en todos lados — ideal para temas.
+*/
+:root {
+  /* Paleta */
+  --color-bg: #25343F;
+  --color-surface: #2d3e4a;
+  --color-text: #EAEFEF;
+  --color-text-muted: #BFC9D1;
+  --color-accent: #FF9B51;
+  --color-border: rgba(191, 201, 209, 0.18);
+
+  /* Tipografía */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+
+  /* Espaciado (escala) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+
+  /* Layout */
+  --content-max-width: 72ch;
+}
+
+/* Reset mínimo */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  line-height: 1.2;
+  margin: 0 0 var(--space-3);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

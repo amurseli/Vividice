@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Permite que Brain dispare un build desde su repo:
+  #   curl -X POST -H "Accept: application/vnd.github+json" \
+  #     -H "Authorization: Bearer $GH_TOKEN" \
+  #     https://api.github.com/repos/amurseli/Vividice/dispatches \
+  #     -d '{"event_type":"brain-updated"}'
+  repository_dispatch:
+    types: [brain-updated]
 
 permissions:
   contents: read
@@ -18,8 +25,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Vividice
         uses: actions/checkout@v4
+
+      # Sparse + partial clone: bajamos solo la subcarpeta Vivídice del repo Brain,
+      # sin todo el resto del repo pesado. --filter=blob:none evita descargar blobs
+      # innecesarios; --depth=1 evita historial.
+      - name: Clone Brain (sparse)
+        env:
+          BRAIN_TOKEN: ${{ secrets.BRAIN_REPO_TOKEN }}
+        run: |
+          git clone \
+            --filter=blob:none \
+            --no-checkout \
+            --depth=1 \
+            "https://x-access-token:${BRAIN_TOKEN}@github.com/amurseli/Brain.git" \
+            brain
+          cd brain
+          git sparse-checkout init --cone
+          git sparse-checkout set "Brain/Ficción/Vivídice"
+          git checkout main
+          echo "Contenido descargado:"
+          ls -la "Brain/Ficción/Vivídice"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -30,7 +57,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # BRAIN_PATH apunta al clon que acabamos de hacer; content.config.ts lo
+      # lee desde process.env.BRAIN_PATH.
       - name: Build
+        env:
+          BRAIN_PATH: ${{ github.workspace }}/brain
         run: npm run build
 
       - name: Upload artifact

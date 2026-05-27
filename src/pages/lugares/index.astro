@@ -1,0 +1,68 @@
+---
+/*
+  Página índice: lista todos los lugares.
+  getCollection('lugares') lee TODOS los .md de src/content/lugares/
+  y devuelve un array tipado.
+*/
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const lugares = await getCollection('lugares');
+
+/* Ordenamos alfabéticamente por nombre */
+lugares.sort((a, b) => a.data.nombre.localeCompare(b.data.nombre));
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="Lugares">
+  <h1>Lugares</h1>
+  <p>{lugares.length} lugares en el mundo de Vividice.</p>
+
+  <ul class="lugar-list">
+    {
+      lugares.map((lugar) => (
+        <li>
+          <a href={`${base}lugares/${lugar.id}`}>
+            <strong>{lugar.data.nombre}</strong>
+            <span class="meta">{lugar.data.tipo}{lugar.data.region ? ` — ${lugar.data.region}` : ''}</span>
+            {lugar.data.descripcionCorta && (
+              <p>{lugar.data.descripcionCorta}</p>
+            )}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>
+
+<style>
+  .lugar-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  .lugar-list a {
+    display: block;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text);
+  }
+  .lugar-list a:hover {
+    border-color: var(--color-accent);
+    text-decoration: none;
+  }
+  .meta {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-top: var(--space-1);
+  }
+  .lugar-list p {
+    margin: var(--space-2) 0 0;
+    color: var(--color-text-muted);
+  }
+</style>

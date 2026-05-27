@@ -1,19 +1,15 @@
 ---
-const title = 'Vividice';
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="generator" content={Astro.generator} />
-    <title>{title}</title>
-  </head>
-  <body>
-    <main>
-      <h1>Vividice</h1>
-      <p>Wiki del mundo. Pronto.</p>
-    </main>
-  </body>
-</html>
+<BaseLayout title="Inicio">
+  <h1>Vividice</h1>
+  <p>
+    Bienvenido a la wiki del mundo. Explorá personajes, lugares y la
+    historia de Vividice.
+  </p>
+  <p>
+    Esta es una página de ejemplo: pronto va a crecer con artículos,
+    búsqueda y un mapa interactivo.
+  </p>
+</BaseLayout>

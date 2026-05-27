@@ -1,0 +1,67 @@
+---
+/*
+  Ruta dinámica: genera una página por cada entrada del collection "lugares".
+
+  getStaticPaths() corre en build time. Astro toma cada path que
+  devolvemos y genera el HTML correspondiente.
+
+  El [...slug] del filename permite que el id tenga slashes
+  (ej: si más adelante metés subcarpetas dentro de src/content/lugares/).
+*/
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const lugares = await getCollection('lugares');
+  return lugares.map((lugar) => ({
+    params: { slug: lugar.id },
+    props: { lugar },
+  }));
+}
+
+type Props = { lugar: CollectionEntry<'lugares'> };
+const { lugar } = Astro.props;
+
+/* render() compila el Markdown a un componente <Content /> que
+   podemos meter en cualquier parte del JSX. */
+const { Content } = await render(lugar);
+const { nombre, tipo, region, aliases } = lugar.data;
+---
+
+<BaseLayout title={nombre}>
+  <article>
+    <header class="lugar-header">
+      <p class="kicker">{tipo}{region ? ` · ${region}` : ''}</p>
+      <h1>{nombre}</h1>
+
+      {aliases.length > 0 && (
+        <p class="aliases">También conocido como: {aliases.join(', ')}</p>
+      )}
+    </header>
+
+    {/* Acá se inyecta el Markdown renderizado a HTML */}
+    <Content />
+  </article>
+</BaseLayout>
+
+<style>
+  .lugar-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .kicker {
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    margin: 0 0 var(--space-2);
+  }
+  .aliases {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: var(--space-3) 0 0;
+  }
+</style>

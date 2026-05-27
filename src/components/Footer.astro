@@ -1,0 +1,24 @@
+---
+/*
+  Componente Astro: HTML puro, sin JS al cliente. Ideal para piezas
+  estáticas (footer, sidebar, listado de tags). Se compone con <slot />
+  o recibe props vía el frontmatter (entre los ---).
+*/
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <p>Vividice — {year}</p>
+</footer>
+
+<style>
+  /* Scoped CSS: este estilo solo aplica a este componente, Astro le
+     agrega un hash único. Útil para no preocuparse por colisiones. */
+  .footer {
+    padding: var(--space-4) var(--space-5);
+    text-align: center;
+    color: var(--color-text-muted);
+    border-top: 1px solid var(--color-border);
+    font-size: 0.875rem;
+  }
+</style>

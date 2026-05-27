@@ -1,0 +1,54 @@
+---
+/*
+  Layout: estructura HTML compartida (head, body, navbar, footer).
+  Las páginas la usan así:
+    <BaseLayout title="Personajes">
+      ...contenido de la página...
+    </BaseLayout>
+  Y <slot /> es donde se inyecta ese contenido.
+*/
+import '../styles/global.css';
+import Navbar from '../components/Navbar.tsx';
+import Footer from '../components/Footer.astro';
+
+type Props = { title: string };
+const { title } = Astro.props;
+
+/* Astro.url.pathname es la URL actual ya con el base aplicado.
+   Lo pasamos a la Navbar para marcar el link activo. */
+const currentPath = Astro.url.pathname;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} — Vividice</title>
+  </head>
+  <body>
+    {/*
+      client:load = hidrata el componente apenas carga la página.
+      Otras opciones: client:visible (cuando entra al viewport),
+      client:idle (cuando el browser está ocioso), client:only="react"
+      (solo en cliente, no SSR).
+    */}
+    <Navbar client:load currentPath={currentPath} base={base} />
+
+    <main class="content">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <style>
+      .content {
+        max-width: var(--content-max-width);
+        margin: 0 auto;
+        padding: var(--space-6) var(--space-5);
+      }
+    </style>
+  </body>
+</html>
