@@ -13,6 +13,8 @@
     - Si no, se resuelve relativa al BASE_URL (sirve archivos de /public)
     - Si no hay imagen, la card cae en layout text-only
 */
+import { url } from '../lib/url';
+
 type Props = {
   href: string;
   title: string;
@@ -33,9 +35,8 @@ const {
   variant = 'default',
 } = Astro.props;
 
-const base = import.meta.env.BASE_URL;
 const imageSrc = imagen
-  ? imagen.startsWith('http') ? imagen : `${base}${imagen}`.replace(/\/\//g, '/')
+  ? imagen.startsWith('http') ? imagen : url(imagen)
   : null;
 ---
 

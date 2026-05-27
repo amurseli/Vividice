@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import EntryCard from '../../components/EntryCard.astro';
+import { url } from '../../lib/url';
 
 type Lugar = CollectionEntry<'lugares'>;
 
@@ -14,15 +15,13 @@ const resto = todos
   .filter((l: Lugar) => l.id !== HERO_ID)
   .sort((a: Lugar, b: Lugar) => a.data.nombre.localeCompare(b.data.nombre));
 
-const base = import.meta.env.BASE_URL;
-
 /* Mapping helper: traduce una entry a los props que EntryCard espera.
    Esto deja la card 100% desacoplada del schema del collection. */
 function toCardProps(lugar: Lugar) {
   const { nombre, tipo, region, descripcionCorta, imagen } = lugar.data;
   const kicker = `${tipo}${region ? ` · ${region}` : ''}`;
   return {
-    href: `${base}lugares/${lugar.id}`,
+    href: url('lugares', lugar.id),
     title: nombre,
     kicker,
     description: descripcionCorta,
