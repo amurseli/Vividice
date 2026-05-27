@@ -65,3 +65,27 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+/* Wikilinks generados por remark-wiki-link */
+.wikilink {
+  color: var(--color-accent);
+  border-bottom: 1px dashed transparent;
+  transition: border-color 120ms ease;
+}
+
+.wikilink:hover {
+  border-bottom-color: var(--color-accent);
+  text-decoration: none;
+}
+
+/* Wikilink a una entrada que aún no existe (no hay .md con ese nombre) */
+.wikilink--missing {
+  color: var(--color-text-muted);
+  border-bottom: 1px dashed var(--color-text-muted);
+  cursor: help;
+}
+
+.wikilink--missing:hover {
+  color: var(--color-text);
+  text-decoration: none;
+}
