@@ -25,16 +25,23 @@ type Props = {
   /* base de Astro: por ej. "/Vividice". Lo recibimos como prop para no
      hardcodearlo en el componente. */
   base?: string;
+  /* transparent=true: navbar sin fondo, posicionada absolute por encima
+     del contenido. Útil cuando hay un shader/imagen fullscreen detrás. */
+  transparent?: boolean;
 };
 
-export default function Navbar({ currentPath, base = '' }: Props) {
+export default function Navbar({
+  currentPath,
+  base = '',
+  transparent = false,
+}: Props) {
   const [open, setOpen] = useState(false);
 
   const withBase = (href: string) => `${base}${href}`.replace(/\/+$/, '') || '/';
   const isActive = (href: string) => currentPath === withBase(href);
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${transparent ? 'navbar--transparent' : ''}`}>
       <a href={withBase('/')} className="navbar__brand">
         Vividice
       </a>

@@ -47,6 +47,10 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   min-height: 100vh;
+  /* Flex column para que <main> rellene el espacio entre navbar y footer
+     y permita layouts "bleed" (ej: shader fullscreen en la home). */
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
