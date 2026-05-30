@@ -22,7 +22,11 @@ type Props = {
   description?: string | null;
   imagen?: string | null;
   imagenAlt?: string;
-  variant?: 'default' | 'hero';
+  /* Variantes:
+       default - card compacta para grid
+       hero    - card destacada full-width (Vivídice en su categoría)
+       section - card de navegación tipo "sección" (categorías en /lugares) */
+  variant?: 'default' | 'hero' | 'section';
 };
 
 const {
@@ -172,12 +176,84 @@ const imageSrc = imagen
     }
     .entry-card--hero.entry-card--with-image .entry-card__media {
       flex: 0 0 45%;
-      aspect-ratio: auto; /* deja que el alto lo defina el contenido */
+      aspect-ratio: auto;
     }
     .entry-card--hero.entry-card--with-image .entry-card__body {
       flex: 1;
       justify-content: center;
       padding: var(--space-6);
     }
+  }
+
+  /*
+    Variante "section": cards grandes tipo navegación / capítulo.
+    - Padding generoso
+    - Tipografía mucho más grande
+    - Barra de acento a la izquierda que crece en hover
+    - Arrow grande centrada vertical
+  */
+  .entry-card--section {
+    border-radius: 16px;
+    transition: border-color 250ms ease, transform 250ms ease,
+      background 250ms ease;
+  }
+
+  .entry-card--section::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--color-accent);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 300ms ease;
+  }
+
+  .entry-card--section:hover {
+    transform: translateY(-3px);
+    background: color-mix(
+      in srgb,
+      var(--color-surface) 90%,
+      var(--color-accent)
+    );
+  }
+
+  .entry-card--section:hover::before {
+    transform: scaleY(1);
+  }
+
+  .entry-card--section .entry-card__body {
+    padding: var(--space-4);
+    padding-left: calc(var(--space-6) + 4px);
+    gap: var(--space-3);
+  }
+
+  .entry-card--section .entry-card__kicker {
+    font-size: 0.75rem;
+  }
+
+  .entry-card--section .entry-card__title {
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    line-height: 1.1;
+  }
+
+  .entry-card--section .entry-card__desc {
+    font-size: 1.05rem;
+  }
+
+  .entry-card--section .entry-card__cta {
+    position: absolute;
+    top: 50%;
+    right: var(--space-5);
+    transform: translateY(-50%);
+    font-size: 1.75rem;
+    transition: transform 200ms ease, color 200ms ease;
+  }
+
+  .entry-card--section:hover .entry-card__cta {
+    color: var(--color-accent);
+    transform: translateY(-50%) translateX(6px);
   }
 </style>

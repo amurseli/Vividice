@@ -11,8 +11,15 @@ import '../styles/global.css';
 import Navbar from '../components/Navbar.tsx';
 import Footer from '../components/Footer.astro';
 
-type Props = { title: string };
-const { title } = Astro.props;
+type Props = {
+  title: string;
+  /* Ancho del main:
+       narrow (default) - 72ch, para artículos/lectura
+       wide             - 1000px, listados con buena legibilidad
+       full             - casi todo el viewport, padding adaptativo */
+  width?: 'narrow' | 'wide' | 'full';
+};
+const { title, width = 'narrow' } = Astro.props;
 
 /* Astro.url.pathname es la URL actual ya con el base aplicado.
    Lo pasamos a la Navbar para marcar el link activo. */
@@ -37,7 +44,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     */}
     <Navbar client:load currentPath={currentPath} base={base} />
 
-    <main class="content">
+    <main class:list={['content', `content--${width}`]}>
       <slot />
     </main>
 
@@ -45,9 +52,20 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     <style>
       .content {
-        max-width: var(--content-max-width);
         margin: 0 auto;
         padding: var(--space-6) var(--space-5);
+      }
+      .content--narrow {
+        max-width: var(--content-max-width);
+      }
+      .content--wide {
+        max-width: 1000px;
+      }
+      .content--full {
+        /* Sin cap rígido. Padding crece con el viewport entre 2rem y 6rem. */
+        max-width: none;
+        padding-left: clamp(var(--space-5), 5vw, 6rem);
+        padding-right: clamp(var(--space-5), 5vw, 6rem);
       }
     </style>
   </body>

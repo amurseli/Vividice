@@ -1,0 +1,123 @@
+---
+/*
+  Listado de entries de una categoría: /lugares/<categoria-slug>
+  Si la categoría tiene una entry marcada como hero (por id), se renderiza
+  destacada arriba y el resto va al grid 2 col abajo.
+*/
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EntryCard from '../../../components/EntryCard.astro';
+import {
+  CATEGORIAS,
+  categoriaDe,
+  urlLugar,
+  type Categoria,
+  type Lugar,
+} from '../../../lib/lugares';
+import { url } from '../../../lib/url';
+
+/* Heroes por categoría: cuando una categoría tiene una entry "raíz" que
+   conviene destacar, la mapeamos acá. Si más adelante se complica, mover
+   a un campo `featured: boolean` en el schema. */
+const HEROES: Record<string, string> = {
+  'regiones-y-continentes': 'vivídice',
+};
+
+export async function getStaticPaths() {
+  return CATEGORIAS.map((cat) => ({
+    params: { categoria: cat.slug },
+    props: { categoria: cat },
+  }));
+}
+
+type Props = { categoria: Categoria };
+const { categoria } = Astro.props;
+
+const todos = await getCollection('lugares');
+const enCategoria = todos.filter(
+  (l: Lugar) => categoriaDe(l)?.slug === categoria.slug,
+);
+
+const heroId = HEROES[categoria.slug];
+const hero = heroId ? enCategoria.find((l: Lugar) => l.id === heroId) : undefined;
+const resto = enCategoria
+  .filter((l: Lugar) => l.id !== heroId)
+  .sort((a: Lugar, b: Lugar) => a.data.nombre.localeCompare(b.data.nombre));
+
+function toCardProps(lugar: Lugar) {
+  const { nombre, tipo, region, descripcionCorta, imagen } = lugar.data;
+  return {
+    href: urlLugar(lugar),
+    title: nombre,
+    kicker: `${tipo}${region ? ` · ${region}` : ''}`,
+    description: descripcionCorta,
+    imagen,
+    imagenAlt: nombre,
+  };
+}
+---
+
+<BaseLayout title={categoria.label}>
+  <p class="breadcrumb">
+    <a href={url('lugares')}>Lugares</a>
+    <span aria-hidden="true">›</span>
+    <span>{categoria.label}</span>
+  </p>
+  <h1>{categoria.label}</h1>
+  <p class="intro">{enCategoria.length} entradas.</p>
+
+  <div class="layout">
+    {hero && <EntryCard {...toCardProps(hero)} variant="hero" />}
+
+    {resto.length > 0 && (
+      <div class="lugares-grid">
+        {resto.map((lugar: Lugar) => <EntryCard {...toCardProps(lugar)} />)}
+      </div>
+    )}
+
+    {!hero && resto.length === 0 && (
+      <p class="empty">Todavía no hay entradas en esta categoría.</p>
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-2);
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+  }
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .lugares-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+  .empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+  @media (max-width: 640px) {
+    .lugares-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -4,34 +4,36 @@ import { readdirSync } from 'node:fs';
 
 import react from '@astrojs/react';
 import remarkWikilinks from './src/lib/remark-wikilinks.mjs';
+import { CATEGORIAS } from './src/lib/categorias.data.mjs';
 
-/*
-  Wikilinks: [[Axioma]] en el markdown se convierte en
-  <a href="/Vividice/lugares/axioma">. Links a archivos inexistentes se
-  marcan con la clase "wikilink--missing".
-
-  Trade-off: si se agregan/quitan archivos en Brain, hay que reiniciar
-  el dev server para refrescar la lista de permalinks.
-*/
 const BRAIN_PATH = process.env.BRAIN_PATH ?? '/home/agusda/Documents/Brain';
 const SITE_BASE = '/Vividice';
+const LUGARES_BASE = `${BRAIN_PATH}/Brain/Ficción/Vivídice/2 - Lugares`;
 
-/** @param {string} dir */
-function readPermalinks(dir) {
-  try {
-    return readdirSync(dir)
-      .filter((f) => f.endsWith('.md'))
-      .map((f) => f.replace(/\.md$/, '').toLowerCase());
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[wikilinks] No se pudo leer ${dir}: ${msg}`);
-    return [];
+/*
+  Construye un mapa slug -> href para que el plugin de wikilinks sepa la URL
+  exacta de cada entry (ahora bajo /lugares/<categoria>/<slug>).
+  Si en Brain se agregan/quitan archivos, hay que reiniciar dev server.
+*/
+function buildLugaresHrefMap() {
+  const map = new Map();
+  for (const cat of CATEGORIAS) {
+    const dir = `${LUGARES_BASE}/${cat.folder}`;
+    try {
+      for (const file of readdirSync(dir)) {
+        if (!file.endsWith('.md')) continue;
+        const slug = file.replace(/\.md$/, '').toLowerCase();
+        map.set(slug, `${SITE_BASE}/lugares/${cat.slug}/${slug}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[wikilinks] No se pudo leer ${dir}: ${msg}`);
+    }
   }
+  return map;
 }
 
-const lugaresPermalinks = readPermalinks(
-  `${BRAIN_PATH}/Brain/Ficción/Vivídice/2 - Lugares`,
-);
+const lugaresHref = buildLugaresHrefMap();
 
 // https://astro.build/config
 export default defineConfig({
@@ -39,15 +41,6 @@ export default defineConfig({
   base: '/Vividice',
   integrations: [react()],
   markdown: {
-    remarkPlugins: [
-      [
-        remarkWikilinks,
-        {
-          permalinks: lugaresPermalinks,
-          hrefTemplate: (/** @type {string} */ slug) =>
-            `${SITE_BASE}/lugares/${slug}`,
-        },
-      ],
-    ],
+    remarkPlugins: [[remarkWikilinks, { hrefMap: lugaresHref }]],
   },
 });

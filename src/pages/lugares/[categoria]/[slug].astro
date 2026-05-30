@@ -1,0 +1,95 @@
+---
+/*
+  Detalle de una entry: /lugares/<categoria-slug>/<entry-slug>
+  Genera una página por cada entry de cada categoría.
+*/
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import {
+  categoriaDe,
+  urlCategoria,
+  type Lugar,
+} from '../../../lib/lugares';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  const lugares = await getCollection('lugares');
+  return lugares
+    .map((lugar: Lugar) => {
+      const cat = categoriaDe(lugar);
+      if (!cat) return null;
+      return {
+        params: { categoria: cat.slug, slug: lugar.id },
+        props: { lugar },
+      };
+    })
+    .filter((p: unknown): p is NonNullable<typeof p> => p !== null);
+}
+
+type Props = { lugar: Lugar };
+const { lugar } = Astro.props;
+const cat = categoriaDe(lugar);
+
+const { Content } = await render(lugar);
+const { nombre, tipo, region, aliases } = lugar.data;
+---
+
+<BaseLayout title={nombre}>
+  <article>
+    <p class="breadcrumb">
+      <a href={url('lugares')}>Lugares</a>
+      <span aria-hidden="true">›</span>
+      {cat && <a href={urlCategoria(cat)}>{cat.label}</a>}
+      {cat && <span aria-hidden="true">›</span>}
+      <span>{nombre}</span>
+    </p>
+
+    <header class="lugar-header">
+      <p class="kicker">{tipo}{region ? ` · ${region}` : ''}</p>
+      <h1>{nombre}</h1>
+
+      {aliases.length > 0 && (
+        <p class="aliases">También conocido como: {aliases.join(', ')}</p>
+      )}
+    </header>
+
+    <Content />
+  </article>
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-4);
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .lugar-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .kicker {
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    margin: 0 0 var(--space-2);
+  }
+  .aliases {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: var(--space-3) 0 0;
+  }
+</style>

@@ -1,49 +1,42 @@
 ---
 import { getCollection } from 'astro:content';
-import type { CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import EntryCard from '../../components/EntryCard.astro';
-import { url } from '../../lib/url';
-
-type Lugar = CollectionEntry<'lugares'>;
-
-const HERO_ID = 'vivídice';
+import {
+  CATEGORIAS,
+  categoriaDe,
+  urlCategoria,
+} from '../../lib/lugares';
 
 const todos = await getCollection('lugares');
-const hero = todos.find((l: Lugar) => l.id === HERO_ID);
-const resto = todos
-  .filter((l: Lugar) => l.id !== HERO_ID)
-  .sort((a: Lugar, b: Lugar) => a.data.nombre.localeCompare(b.data.nombre));
 
-/* Mapping helper: traduce una entry a los props que EntryCard espera.
-   Esto deja la card 100% desacoplada del schema del collection. */
-function toCardProps(lugar: Lugar) {
-  const { nombre, tipo, region, descripcionCorta, imagen } = lugar.data;
-  const kicker = `${tipo}${region ? ` · ${region}` : ''}`;
-  return {
-    href: url('lugares', lugar.id),
-    title: nombre,
-    kicker,
-    description: descripcionCorta,
-    imagen,
-    imagenAlt: nombre,
-  };
+const counts = new Map<string, number>();
+for (const lugar of todos) {
+  const cat = categoriaDe(lugar);
+  if (!cat) continue;
+  counts.set(cat.slug, (counts.get(cat.slug) ?? 0) + 1);
 }
 ---
 
-<BaseLayout title="Lugares">
+<BaseLayout title="Lugares" width="full">
   <h1>Lugares</h1>
-  <p class="intro">{todos.length} lugares en el mundo de Vividice.</p>
+  <p class="intro">Explorá el mundo por categoría.</p>
 
-  <div class="lugares-layout">
-    {hero && <EntryCard {...toCardProps(hero)} variant="hero" />}
-
-    {resto.length > 0 && (
-      <div class="lugares-grid">
-        {resto.map((lugar: Lugar) => <EntryCard {...toCardProps(lugar)} />)}
-      </div>
-    )}
-  </div>
+  <ul class="categorias-list">
+    {
+      CATEGORIAS.map((cat, i) => (
+        <li>
+          <EntryCard
+            href={urlCategoria(cat)}
+            title={cat.label}
+            kicker={`Categoría · ${String(i + 1).padStart(2, '0')}`}
+            description={`${counts.get(cat.slug) ?? 0} entradas`}
+            variant="section"
+          />
+        </li>
+      ))
+    }
+  </ul>
 </BaseLayout>
 
 <style>
@@ -51,22 +44,12 @@ function toCardProps(lugar: Lugar) {
     color: var(--color-text-muted);
     margin-bottom: var(--space-5);
   }
-
-  .lugares-layout {
+  .categorias-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-  }
-
-  .lugares-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-4);
-  }
-
-  @media (max-width: 640px) {
-    .lugares-grid {
-      grid-template-columns: 1fr;
-    }
   }
 </style>
