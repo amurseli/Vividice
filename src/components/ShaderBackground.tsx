@@ -21,6 +21,10 @@ const FRAGMENT_SRC = `
   uniform vec2 u_resolution;
   uniform float u_time;
   uniform vec4 u_mousepos;
+  /* u_seed: número arbitrario por instancia (típicamente 0..1).
+     Lo usamos para desplazar la región de noise y la fase de tiempo,
+     de modo que dos shaders con seeds distintos no se vean idénticos. */
+  uniform float u_seed;
 
   const vec3 BG   = vec3(0.0, 0.0, 0.0);
   const vec3 WARM = vec3(0.039, 0.251, 0.329);
@@ -81,6 +85,13 @@ const FRAGMENT_SRC = `
     uv.x *= u_resolution.x / u_resolution.y;
     float t = u_time * 0.07;
 
+    /* Offset por seed: los 47.1 y 31.7 son números arbitrarios (primos
+       para evitar repeticiones obvias). Cada instancia ve una región
+       distinta del noise infinito, y arranca con una fase de tiempo
+       distinta (u_seed * 100 corre el clock muchos "segundos" hacia adelante). */
+    uv += vec2(u_seed * 47.1, u_seed * 31.7);
+    t += u_seed * 100.0;
+
     
     vec2 mouseUv  = u_mousepos.xy / u_resolution.xy;
     vec2 toMouse  = (fragUv - mouseUv) * vec2(u_resolution.x / u_resolution.y, 1.0);
@@ -130,7 +141,14 @@ function compileShader(
   return shader;
 }
 
-export default function ShaderBackground() {
+type Props = {
+  /* Valor arbitrario (típico 0..1) que desplaza la región del noise y la
+     fase del tiempo. Útil para que múltiples instancias del shader en la
+     misma página no se vean idénticas. */
+  seed?: number;
+};
+
+export default function ShaderBackground({ seed = 0 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -172,6 +190,9 @@ export default function ShaderBackground() {
     const resLoc = gl.getUniformLocation(program, 'u_resolution');
     const timeLoc = gl.getUniformLocation(program, 'u_time');
     const mouseLoc = gl.getUniformLocation(program, 'u_mousepos');
+    const seedLoc = gl.getUniformLocation(program, 'u_seed');
+    /* El seed no cambia con el tiempo, lo seteamos una vez. */
+    gl.uniform1f(seedLoc, seed);
 
     /* mouse.x = -1 = inactivo. El shader chequea step(0, u_mousepos.x). */
     const mouse = { x: -1, y: -1 };
@@ -244,7 +265,7 @@ export default function ShaderBackground() {
       gl.deleteShader(fs);
       gl.deleteBuffer(buffer);
     };
-  }, []);
+  }, [seed]);
 
   return (
     <canvas

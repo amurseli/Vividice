@@ -32,6 +32,8 @@ for (const lugar of todos) {
             kicker={`Categoría · ${String(i + 1).padStart(2, '0')}`}
             description={`${counts.get(cat.slug) ?? 0} entradas`}
             variant="section"
+            shaderBg
+            shaderSeed={(i + 1) * 0.37}
           />
         </li>
       ))
