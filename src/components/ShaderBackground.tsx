@@ -27,7 +27,7 @@ const FRAGMENT_SRC = `
   uniform float u_seed;
 
   const vec3 BG  = vec3(0.0, 0.0, 0.0);
-  const vec3 RED = vec3(0.7, 0.0, 0.0);
+  const vec3 RED = vec3(0.2, 0.0, 0.0);
 
   vec4 permute(vec4 x) {
     return mod(((x * 34.0) + 1.0) * x, 289.0);
