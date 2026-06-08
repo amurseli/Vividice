@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react';
 /*
   Renderiza el shader Perlin/FBM como background fullscreen.
   - El vertex shader es un fullscreen quad (2 triángulos cubriendo NDC -1..1).
-  - El fragment shader es el que pasó el usuario, con uniforms u_resolution,
-    u_time y u_mousepos.
+  - El fragment shader es el que pasó el usuario, con uniforms u_resolution
+    y u_time.
   - Loop con requestAnimationFrame. Se pausa cuando el tab está oculto.
 */
 
@@ -20,14 +20,13 @@ const FRAGMENT_SRC = `
 
   uniform vec2 u_resolution;
   uniform float u_time;
-  uniform vec4 u_mousepos;
   /* u_seed: número arbitrario por instancia (típicamente 0..1).
      Lo usamos para desplazar la región de noise y la fase de tiempo,
      de modo que dos shaders con seeds distintos no se vean idénticos. */
   uniform float u_seed;
 
   const vec3 BG  = vec3(0.0, 0.0, 0.0);
-  const vec3 RED = vec3(0.2, 0.0, 0.0);
+  const vec3 RED = vec3(0.4, 0.0, 0.0);
 
   vec4 permute(vec4 x) {
     return mod(((x * 34.0) + 1.0) * x, 289.0);
@@ -90,16 +89,8 @@ const FRAGMENT_SRC = `
     uv += vec2(u_seed * 47.1, u_seed * 31.7);
     t += u_seed * 100.0;
 
-    
-    vec2 mouseUv  = u_mousepos.xy / u_resolution.xy;
-    vec2 toMouse  = (fragUv - mouseUv) * vec2(u_resolution.x / u_resolution.y, 1.0);
-    float mDist   = length(toMouse);
-    float mActive = step(0.0, u_mousepos.x);
-    float mStr    = exp(-mDist * mDist * 5.5) * mActive * 0.02;
-    vec2  mOffset = normalize(toMouse + vec2(0.001)) * mStr;
-    
-    vec2 wuv = uv + mOffset;
-    
+    vec2 wuv = uv;
+
     vec2 q = vec2(
       fbm(wuv + vec2(0.00, 0.00) + t),
       fbm(wuv + vec2(5.20, 1.30) + t * 0.9)
@@ -119,8 +110,6 @@ const FRAGMENT_SRC = `
 
     vec3 color = mix(BG, RED, redAmt);
 
-    /* Mucho más imperceptible: bajamos la intensidad al 40% de lo actual,
-       dejando un fondo negro con un leve detalle de rojo fluyendo. */
     color *= 0.40;
 
     gl_FragColor = vec4(color, 1.0);
@@ -192,13 +181,9 @@ export default function ShaderBackground({ seed = 0 }: Props) {
 
     const resLoc = gl.getUniformLocation(program, 'u_resolution');
     const timeLoc = gl.getUniformLocation(program, 'u_time');
-    const mouseLoc = gl.getUniformLocation(program, 'u_mousepos');
     const seedLoc = gl.getUniformLocation(program, 'u_seed');
     /* El seed no cambia con el tiempo, lo seteamos una vez. */
     gl.uniform1f(seedLoc, seed);
-
-    /* mouse.x = -1 = inactivo. El shader chequea step(0, u_mousepos.x). */
-    const mouse = { x: -1, y: -1 };
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -211,23 +196,8 @@ export default function ShaderBackground({ seed = 0 }: Props) {
       }
     };
 
-    const onMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const dprX = canvas.width / rect.width;
-      const dprY = canvas.height / rect.height;
-      mouse.x = (e.clientX - rect.left) * dprX;
-      /* WebGL coord origin: bottom-left. CSS: top-left. Invertimos Y. */
-      mouse.y = canvas.height - (e.clientY - rect.top) * dprY;
-    };
-
-    const onMouseLeave = () => {
-      mouse.x = -1;
-    };
-
     resize();
     window.addEventListener('resize', resize);
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mouseleave', onMouseLeave);
 
     const start = performance.now();
     let raf = 0;
@@ -238,7 +208,6 @@ export default function ShaderBackground({ seed = 0 }: Props) {
       resize();
       gl.uniform2f(resLoc, canvas.width, canvas.height);
       gl.uniform1f(timeLoc, (now - start) / 1000);
-      gl.uniform4f(mouseLoc, mouse.x, mouse.y, 0, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       raf = requestAnimationFrame(render);
     };
@@ -260,8 +229,6 @@ export default function ShaderBackground({ seed = 0 }: Props) {
       running = false;
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
-      canvas.removeEventListener('mousemove', onMouseMove);
-      canvas.removeEventListener('mouseleave', onMouseLeave);
       document.removeEventListener('visibilitychange', onVisibility);
       gl.deleteProgram(program);
       gl.deleteShader(vs);
