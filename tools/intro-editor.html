@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Editor de intro — Vividice</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #141518;
+    --panel: #17191d;
+    --text: #edeff2;
+    --muted: #97a0ab;
+    --accent: #e63329;
+    --accent-2: #46b7c4;
+    --border: rgba(237, 239, 242, 0.12);
+    --serif: "Iowan Old Style", Palatino, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.5 system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  header h1 { font: 600 13px/1 system-ui; margin: 0; }
+  header .spacer { flex: 1; }
+  .status { font-size: 12px; color: var(--muted); }
+  .status.ok { color: var(--accent-2); }
+  .status.err { color: var(--accent); }
+  button, select, input, textarea {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px;
+  }
+  button { cursor: pointer; transition: border-color .12s, color .12s, background .12s; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { opacity: .9; }
+  button.ghost { background: transparent; }
+
+  .stage { flex: 1; position: relative; overflow: hidden; }
+  .canvas { position: absolute; inset: 0; cursor: grab;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(237,239,242,0.06) 1px, transparent 0) 0 0 / 26px 26px; }
+  .canvas.panning { cursor: grabbing; }
+  .canvas.connecting { cursor: crosshair; }
+  .world { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  .edges { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+
+  .node {
+    position: absolute; width: 190px; height: 64px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; cursor: grab;
+    display: flex; flex-direction: column; gap: 3px; user-select: none;
+  }
+  .node:hover { border-color: var(--muted); }
+  .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .node.start { border-left: 3px solid var(--accent-2); }
+  .node__id { font: 600 11px/1 ui-monospace, monospace; color: var(--text); display: flex; gap: 6px; align-items: center; }
+  .node__id .star { color: var(--accent-2); }
+  .node__text { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .node__kind { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; margin-top: auto; }
+  .k-next { color: var(--muted); }
+  .k-choice { color: var(--accent-2); }
+  .k-end { color: var(--accent); }
+
+  .port {
+    position: absolute; width: 11px; height: 11px; border-radius: 50%;
+    background: var(--bg); border: 1.5px solid var(--muted); cursor: crosshair;
+    transform: translate(-50%, -50%); pointer-events: auto;
+  }
+  .port:hover, .port.armed { border-color: var(--accent); background: var(--accent); }
+  .port.in { border-color: var(--border); cursor: default; }
+
+  .inspector {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 320px;
+    background: var(--panel); border-left: 1px solid var(--border);
+    padding: 16px; overflow-y: auto; transform: translateX(100%);
+    transition: transform .18s ease; z-index: 8;
+  }
+  .inspector.open { transform: none; }
+  .insp__head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .insp__head .spacer { flex: 1; }
+  .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: block; margin-bottom: 4px; margin-top: 12px; }
+  .inspector input, .inspector select, .inspector textarea { width: 100%; }
+  textarea { resize: vertical; min-height: 64px; }
+  select.next.missing { border-color: var(--accent); }
+  .opt { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-top: 8px; }
+  .opt__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .opt__head span { font: 10px/1 ui-monospace, monospace; color: var(--muted); }
+  .del { color: var(--muted); border-color: transparent; background: transparent; }
+  .del:hover { color: var(--accent); }
+  .hint { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 10px; }
+  .warn { color: var(--accent); }
+  .insp__actions { display: flex; gap: 8px; margin-top: 18px; }
+
+  .overlay { position: fixed; inset: 0; z-index: 30; background: #000;
+    display: none; align-items: center; justify-content: center; cursor: pointer; padding: 8vw; }
+  .overlay.open { display: flex; }
+  .pv { max-width: 60ch; text-align: center; }
+  .pv__text { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 2.2rem); line-height: 1.4; min-height: 1.4em; margin: 0; }
+  .pv__char { animation: fadein .5s ease both; }
+  @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+  .pv__opts { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .pv__opts button { min-width: 16rem; padding: 12px 24px; }
+  .pv__arrow { margin-top: 28px; font-size: 1.6rem; color: var(--muted); opacity: .5; }
+  .pv__close { position: fixed; top: 16px; right: 20px; font-size: 13px; color: var(--muted); }
+
+  .help { position: absolute; bottom: 12px; left: 12px; font-size: 11px; color: var(--muted); z-index: 6; pointer-events: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Editor de intro</h1>
+  <span id="status" class="status">cargando…</span>
+  <span class="spacer"></span>
+  <button id="add">+ Nodo</button>
+  <button id="play">▶ Probar</button>
+  <button id="fit" class="ghost">Centrar</button>
+  <button id="reload" class="ghost">Recargar</button>
+  <button id="save" class="primary">Guardar</button>
+</header>
+
+<div class="stage">
+  <div id="canvas" class="canvas">
+    <div id="world" class="world">
+      <svg id="edges" class="edges"></svg>
+    </div>
+  </div>
+  <div class="help">arrastrá el fondo para mover · rueda para zoom · arrastrá desde un punto de salida a otro nodo para conectar (o soltá en el vacío para crear uno)</div>
+  <aside id="inspector" class="inspector"></aside>
+</div>
+
+<div id="overlay" class="overlay">
+  <span class="pv__close">esc para cerrar</span>
+  <div class="pv"><p id="pvText" class="pv__text"></p><div id="pvAfter"></div></div>
+</div>
+
+<script type="module">
+const SVGNS = 'http://www.w3.org/2000/svg';
+const W = 190, H = 64;
+const POS_KEY = 'vividice:intro-pos';
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, props = {}, kids = []) => {
+  const n = Object.assign(document.createElement(tag), props);
+  for (const k of [].concat(kids)) if (k != null) n.append(k);
+  return n;
+};
+
+let script = { start: '', steps: {} };
+let pos = {};
+let selected = null;
+let dirty = false;
+let view = { x: 60, y: 60, z: 1 };
+
+const canvas = $('#canvas');
+const world = $('#world');
+const svg = $('#edges');
+const inspector = $('#inspector');
+
+function setStatus(msg, cls = '') { const s = $('#status'); s.textContent = msg; s.className = 'status ' + cls; }
+function markDirty() { dirty = true; setStatus('cambios sin guardar', 'err'); }
+function kindOf(step) {
+  if (Array.isArray(step.options)) return 'choice';
+  if (step.next !== undefined && step.next !== null) return 'next';
+  return 'end';
+}
+function loadPos() { try { pos = JSON.parse(localStorage.getItem(POS_KEY)) || {}; } catch { pos = {}; } }
+function savePos() { localStorage.setItem(POS_KEY, JSON.stringify(pos)); }
+
+function autolayout() {
+  const ids = Object.keys(script.steps);
+  const depth = {};
+  const q = script.steps[script.start] ? [script.start] : [];
+  depth[script.start] = 0;
+  while (q.length) {
+    const id = q.shift();
+    const step = script.steps[id];
+    const targets = kindOf(step) === 'choice'
+      ? step.options.map((o) => o.next)
+      : [step.next];
+    for (const t of targets)
+      if (t && script.steps[t] && depth[t] === undefined) { depth[t] = depth[id] + 1; q.push(t); }
+  }
+  const rows = {};
+  for (const id of ids) {
+    if (pos[id]) continue;
+    const d = depth[id] ?? 0;
+    rows[d] = (rows[d] ?? 0) + 1;
+    pos[id] = { x: d * 260, y: (rows[d] - 1) * 110 };
+  }
+}
+
+async function load() {
+  const res = await fetch('/api/script');
+  script = await res.json();
+  loadPos();
+  autolayout();
+  dirty = false;
+  selected = null;
+  renderGraph();
+  renderInspector();
+  setStatus('cargado', 'ok');
+}
+
+async function save() {
+  setStatus('guardando…');
+  const res = await fetch('/api/script', {
+    method: 'PUT', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(script, null, 2),
+  });
+  if (res.ok) { dirty = false; setStatus('guardado ✓', 'ok'); }
+  else { const { error } = await res.json().catch(() => ({})); setStatus('error: ' + (error || res.status), 'err'); }
+}
+
+function applyView() { world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.z})`; }
+
+function outAnchors(id, step) {
+  const p = pos[id];
+  if (kindOf(step) === 'next') return [{ x: p.x + W, y: p.y + H / 2 }];
+  if (kindOf(step) === 'choice')
+    return step.options.map((_, i) => ({ x: p.x + W, y: p.y + (H * (i + 1)) / (step.options.length + 1) }));
+  return [];
+}
+function inAnchor(id) { const p = pos[id]; return { x: p.x, y: p.y + H / 2 }; }
+
+function drawEdges() {
+  svg.innerHTML = '';
+  for (const [id, step] of Object.entries(script.steps)) {
+    const k = kindOf(step);
+    const outs = outAnchors(id, step);
+    const targets = k === 'choice' ? step.options.map((o) => o.next) : [step.next];
+    targets.forEach((t, i) => {
+      if (!t || !script.steps[t]) return;
+      const a = outs[i], b = inAnchor(t);
+      const dx = Math.max(40, Math.abs(b.x - a.x) / 2);
+      const path = document.createElementNS(SVGNS, 'path');
+      path.setAttribute('d', `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', k === 'choice' ? 'var(--accent-2)' : 'var(--muted)');
+      path.setAttribute('stroke-width', '1.5');
+      path.setAttribute('opacity', id === selected ? '1' : '0.55');
+      svg.append(path);
+    });
+  }
+}
+
+function renderGraph() {
+  [...world.querySelectorAll('.node')].forEach((n) => n.remove());
+  for (const [id, step] of Object.entries(script.steps)) {
+    if (!pos[id]) pos[id] = { x: 0, y: 0 };
+    const k = kindOf(step);
+    const node = el('div', { className: 'node' + (id === selected ? ' selected' : '') + (id === script.start ? ' start' : '') });
+    node.style.left = pos[id].x + 'px';
+    node.style.top = pos[id].y + 'px';
+    node.dataset.id = id;
+
+    node.append(
+      el('div', { className: 'node__id' }, [
+        id === script.start ? el('span', { className: 'star', textContent: '★' }) : null,
+        document.createTextNode(id),
+      ]),
+      el('div', { className: 'node__text', textContent: step.text || '(sin texto)' }),
+      el('div', { className: 'node__kind k-' + k, textContent: k === 'next' ? 'continuar' : k === 'choice' ? 'elección · ' + step.options.length : 'fin' }),
+    );
+
+    const inp = el('div', { className: 'port in' });
+    inp.style.left = '0px'; inp.style.top = H / 2 + 'px';
+    node.append(inp);
+
+    outAnchors(id, step).forEach((a, i) => {
+      const port = el('div', { className: 'port out' });
+      port.style.left = W + 'px';
+      port.style.top = (a.y - pos[id].y) + 'px';
+      port.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); startWire(id, i, e); });
+      node.append(port);
+    });
+
+    attachNodeDrag(node, id);
+    world.append(node);
+  }
+  drawEdges();
+}
+
+function attachNodeDrag(node, id) {
+  node.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const start = { mx: e.clientX, my: e.clientY, px: pos[id].x, py: pos[id].y };
+    let moved = false;
+    const move = (ev) => {
+      const dx = (ev.clientX - start.mx) / view.z;
+      const dy = (ev.clientY - start.my) / view.z;
+      if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+      pos[id] = { x: start.px + dx, y: start.py + dy };
+      node.style.left = pos[id].x + 'px';
+      node.style.top = pos[id].y + 'px';
+      drawEdges();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      if (moved) savePos();
+      else select(id);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  });
+}
+
+function startWire(fromId, i, e) {
+  const a = outAnchors(fromId, script.steps[fromId])[i];
+  const rect = canvas.getBoundingClientRect();
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'var(--accent)');
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-dasharray', '5 4');
+  svg.append(path);
+  canvas.classList.add('connecting');
+  let moved = false;
+  const toWorld = (ev) => ({
+    x: (ev.clientX - rect.left - view.x) / view.z,
+    y: (ev.clientY - rect.top - view.y) / view.z,
+  });
+  const move = (ev) => {
+    const w = toWorld(ev);
+    if (Math.abs(w.x - a.x) + Math.abs(w.y - a.y) > 4) moved = true;
+    const dx = Math.max(40, Math.abs(w.x - a.x) / 2);
+    path.setAttribute('d', `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${w.x - dx} ${w.y}, ${w.x} ${w.y}`);
+  };
+  const up = (ev) => {
+    window.removeEventListener('mousemove', move);
+    window.removeEventListener('mouseup', up);
+    path.remove();
+    canvas.classList.remove('connecting');
+    if (!moved) return renderGraph();
+    const hit = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.node');
+    let targetId = hit?.dataset.id;
+    if (!targetId) {
+      const w = toWorld(ev);
+      targetId = freshId();
+      script.steps[targetId] = { text: '' };
+      pos[targetId] = { x: w.x - W / 2, y: w.y - H / 2 };
+      savePos();
+    }
+    if (targetId === fromId) return renderGraph();
+    const s = script.steps[fromId];
+    if (kindOf(s) === 'choice') s.options[i].next = targetId;
+    else s.next = targetId;
+    markDirty();
+    select(targetId);
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+  move(e);
+}
+
+function select(id) {
+  selected = id;
+  renderGraph();
+  renderInspector();
+}
+function deselect() { selected = null; renderGraph(); renderInspector(); }
+
+function freshId() {
+  const max = Object.keys(script.steps).reduce((m, id) => Math.max(m, parseInt(id, 10) || 0), 0);
+  let n = max + 1;
+  while (script.steps[String(n)]) n++;
+  return String(n);
+}
+
+function changeKind(id, kind) {
+  const step = script.steps[id];
+  delete step.next; delete step.options;
+  if (kind === 'next') step.next = '';
+  else if (kind === 'choice') step.options = [{ label: 'Opción A', next: '' }, { label: 'Opción B', next: '' }];
+  markDirty(); renderGraph(); renderInspector();
+}
+
+function renameStep(oldId, raw) {
+  const newId = raw.trim();
+  if (!newId || newId === oldId) return renderInspector();
+  if (script.steps[newId]) { setStatus('ya existe "' + newId + '"', 'err'); return renderInspector(); }
+  const rebuilt = {};
+  for (const [k, v] of Object.entries(script.steps)) rebuilt[k === oldId ? newId : k] = v;
+  script.steps = rebuilt;
+  for (const step of Object.values(script.steps)) {
+    if (step.next === oldId) step.next = newId;
+    if (Array.isArray(step.options)) for (const o of step.options) if (o.next === oldId) o.next = newId;
+  }
+  if (script.start === oldId) script.start = newId;
+  if (pos[oldId]) { pos[newId] = pos[oldId]; delete pos[oldId]; savePos(); }
+  if (selected === oldId) selected = newId;
+  markDirty(); renderGraph(); renderInspector();
+}
+
+function deleteStep(id) {
+  if (id === script.start) return;
+  delete script.steps[id];
+  delete pos[id]; savePos();
+  for (const step of Object.values(script.steps)) {
+    if (step.next === id) step.next = '';
+    if (Array.isArray(step.options)) for (const o of step.options) if (o.next === id) o.next = '';
+  }
+  if (selected === id) selected = null;
+  markDirty(); renderGraph(); renderInspector();
+}
+
+function nextSelect(value, selfId, onChange) {
+  const others = Object.keys(script.steps).filter((x) => x !== selfId);
+  const missing = value && !others.includes(value);
+  const sel = el('select', { className: 'next' + (missing ? ' missing' : '') });
+  sel.append(el('option', { value: '', textContent: '— fin —' }));
+  for (const id of others) sel.append(el('option', { value: id, textContent: id }));
+  if (missing) sel.append(el('option', { value, textContent: value + ' (no existe)' }));
+  sel.value = value || '';
+  sel.onchange = () => onChange(sel.value);
+  return sel;
+}
+
+function renderInspector() {
+  if (!selected || !script.steps[selected]) { inspector.classList.remove('open'); inspector.innerHTML = ''; return; }
+  const id = selected, step = script.steps[id], k = kindOf(step);
+  inspector.innerHTML = '';
+  inspector.classList.add('open');
+
+  const idInput = el('input', { value: id });
+  idInput.onchange = () => renameStep(id, idInput.value);
+  const close = el('button', { className: 'ghost', textContent: '✕' });
+  close.onclick = deselect;
+  inspector.append(el('div', { className: 'insp__head' }, [
+    el('span', { className: 'lbl', textContent: 'id', style: 'margin:0' }),
+    idInput, el('span', { className: 'spacer' }), close,
+  ]));
+
+  inspector.append(el('span', { className: 'lbl', textContent: 'Texto' }));
+  const text = el('textarea', { value: step.text || '' });
+  text.oninput = () => {
+    step.text = text.value; markDirty();
+    const n = world.querySelector(`.node[data-id="${id}"] .node__text`);
+    if (n) n.textContent = step.text || '(sin texto)';
+  };
+  inspector.append(text);
+
+  inspector.append(el('span', { className: 'lbl', textContent: 'Salida' }));
+  const kindSel = el('select');
+  for (const [v, label] of [['next', 'Continuar'], ['choice', 'Elección'], ['end', 'Fin']])
+    kindSel.append(el('option', { value: v, textContent: label }));
+  kindSel.value = k;
+  kindSel.onchange = () => changeKind(id, kindSel.value);
+  inspector.append(kindSel);
+
+  if (k === 'next') {
+    inspector.append(el('span', { className: 'lbl', textContent: 'Siguiente paso' }));
+    inspector.append(nextSelect(step.next, id, (v) => { step.next = v; markDirty(); renderGraph(); }));
+  }
+
+  if (k === 'choice') {
+    inspector.append(el('span', { className: 'lbl', textContent: 'Opciones' }));
+    step.options.forEach((opt, i) => {
+      const labelInput = el('input', { value: opt.label || '', placeholder: 'Texto del botón' });
+      labelInput.oninput = () => { opt.label = labelInput.value; markDirty(); };
+      const rm = el('button', { className: 'del', textContent: '✕' });
+      rm.onclick = () => { step.options.splice(i, 1); markDirty(); renderGraph(); renderInspector(); };
+      inspector.append(el('div', { className: 'opt' }, [
+        el('div', { className: 'opt__head' }, [el('span', { textContent: '#' + (i + 1) }), rm]),
+        labelInput,
+        el('span', { className: 'lbl', textContent: 'Va a' }),
+        nextSelect(opt.next, id, (v) => { opt.next = v; markDirty(); renderGraph(); }),
+      ]));
+    });
+    const addOpt = el('button', { textContent: '+ opción', style: 'margin-top:10px' });
+    addOpt.onclick = () => {
+      step.options.push({ label: 'Nueva opción', next: '' });
+      markDirty(); renderGraph(); renderInspector();
+    };
+    inspector.append(addOpt);
+    if (step.options.length === 0) inspector.append(el('div', { className: 'hint warn', textContent: 'Sin opciones, no puede avanzar.' }));
+  }
+
+  if (k === 'end') inspector.append(el('div', { className: 'hint', textContent: 'Este paso termina la novela.' }));
+
+  const startBtn = el('button', { textContent: id === script.start ? '★ es el inicio' : 'Marcar como inicio', disabled: id === script.start });
+  startBtn.onclick = () => { script.start = id; markDirty(); renderGraph(); renderInspector(); };
+  const delBtn = el('button', { className: 'del', textContent: 'Borrar paso', disabled: id === script.start });
+  delBtn.onclick = () => deleteStep(id);
+  inspector.append(el('div', { className: 'insp__actions' }, [startBtn, delBtn]));
+}
+
+function addNode() {
+  const id = freshId();
+  script.steps[id] = { text: '' };
+  pos[id] = {
+    x: (canvas.clientWidth / 2 - view.x) / view.z - W / 2,
+    y: (canvas.clientHeight / 2 - view.y) / view.z - H / 2,
+  };
+  savePos(); markDirty(); select(id);
+}
+
+function fit() { view = { x: 60, y: 60, z: 1 }; applyView(); }
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.target.closest('.node') || e.target.closest('.inspector')) return;
+  const start = { mx: e.clientX, my: e.clientY, vx: view.x, vy: view.y };
+  canvas.classList.add('panning');
+  const move = (ev) => { view.x = start.vx + (ev.clientX - start.mx); view.y = start.vy + (ev.clientY - start.my); applyView(); };
+  const up = () => { canvas.classList.remove('panning'); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+  const nz = Math.min(2, Math.max(0.4, view.z * factor));
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  view.x = cx - (cx - view.x) * (nz / view.z);
+  view.y = cy - (cy - view.y) * (nz / view.z);
+  view.z = nz;
+  applyView();
+}, { passive: false });
+
+$('#add').onclick = addNode;
+$('#fit').onclick = fit;
+$('#save').onclick = save;
+$('#reload').onclick = () => { if (!dirty || confirm('Descartar cambios sin guardar?')) load(); };
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); }
+  if (e.key === 'Escape') { if (overlay.classList.contains('open')) pvClose(); else deselect(); }
+});
+
+const overlay = $('#overlay');
+let pv = { id: null, full: '', typing: false, timer: 0 };
+function pvStop() { clearInterval(pv.timer); pv.typing = false; }
+function pvClose() { pvStop(); overlay.classList.remove('open'); }
+function pvType(id) {
+  pvStop();
+  const step = script.steps[id];
+  if (!step) return pvClose();
+  pv.id = id; pv.full = step.text || '';
+  $('#pvText').innerHTML = ''; $('#pvAfter').innerHTML = '';
+  let i = 0; pv.typing = true;
+  pv.timer = setInterval(() => {
+    if (i >= pv.full.length) return pvDone(id);
+    $('#pvText').append(el('span', { className: 'pv__char', textContent: pv.full[i] })); i++;
+  }, 32);
+}
+function pvComplete() {
+  pvStop();
+  $('#pvText').innerHTML = '';
+  for (const ch of pv.full) $('#pvText').append(el('span', { className: 'pv__char', textContent: ch }));
+  pvDone(pv.id);
+}
+function pvDone(id) {
+  pvStop();
+  const step = script.steps[id], after = $('#pvAfter'); after.innerHTML = '';
+  const k = kindOf(step);
+  if (k === 'choice') {
+    const ul = el('ul', { className: 'pv__opts' });
+    for (const opt of step.options) {
+      const b = el('button', { textContent: opt.label });
+      b.onclick = (e) => { e.stopPropagation(); (opt.next && script.steps[opt.next]) ? pvType(opt.next) : pvClose(); };
+      ul.append(el('li', {}, b));
+    }
+    after.append(ul);
+  } else after.append(el('div', { className: 'pv__arrow', textContent: k === 'next' ? '↓' : '— fin —' }));
+}
+overlay.onclick = () => {
+  if (pv.typing) return pvComplete();
+  const step = script.steps[pv.id]; if (!step) return pvClose();
+  const k = kindOf(step);
+  if (k === 'next') (step.next && script.steps[step.next]) ? pvType(step.next) : pvClose();
+  else if (k === 'end') pvClose();
+};
+$('#play').onclick = () => { overlay.classList.add('open'); pvType(script.start); };
+
+applyView();
+load();
+</script>
+</body>
+</html>

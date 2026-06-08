@@ -2,30 +2,45 @@
   "start": "1",
   "steps": {
     "1": {
-      "text": "Abrís los ojos. El aire sabe a roca húmeda y a humo lejano.",
+      "text": "Bienvenido...",
       "next": "2"
     },
     "2": {
-      "text": "Muy abajo, en la oscuridad de los Niveles Inferiores, alguien pronuncia tu nombre.",
+      "text": "Han pasado... años desde la última vez que llovió así, ¿Verdad?",
       "next": "3"
     },
     "3": {
-      "text": "¿Respondés?",
+      "text": "Poder sentarse a plasmar lo que una pluma entintada pide es una sensación maravillosa. inigualable.",
+      "next": "4"
+    },
+    "4": {
+      "text": "Un café caliente y el ruido de la lluvia. El olor herbal inundando el ambiente...\n¡Hey! Seguro a vos también te gustan las historias.\n\n¿Qué es lo que más te gustan de ellas?",
       "options": [
-        { "label": "Responder", "next": "4a" },
-        { "label": "Quedarte en silencio", "next": "4b" }
+        {
+          "label": "Sus personajes",
+          "next": "5a"
+        },
+        {
+          "label": "Su Trama",
+          "next": "5b"
+        },
+        {
+          "label": "Su Mensaje",
+          "next": "5c"
+        }
       ]
     },
-    "4a": {
-      "text": "Tu voz se pierde entre las columnas. Algo, allá abajo, se mueve.",
-      "next": "5"
+    "5c": {
+      "text": "",
+      "next": ""
     },
-    "4b": {
-      "text": "El silencio se estira. La voz no vuelve a llamar. Estás solo.",
-      "next": "5"
+    "5b": {
+      "text": "",
+      "next": ""
     },
-    "5": {
-      "text": "Bienvenido a Vivídice."
+    "5a": {
+      "text": "",
+      "next": ""
     }
   }
 }

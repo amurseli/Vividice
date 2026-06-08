@@ -1,26 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import type { Script, Step } from '../lib/narrative';
 import './VisualNovel.css';
-
-/*
-  Novela visual de entrada.
-
-  - El guion vive en un JSON (src/data/intro.json) y se pasa como prop
-    `script`. Estructura de grafo: `start` (id del primer step) + `steps`
-    (mapa id -> step). Cada step tiene `text` y o bien:
-      · `next`: id del siguiente step (se avanza con click), o
-      · `options`: lista de { label, next } que ramifican según la elección.
-    Un step sin `next` ni `options` es el final: al avanzar lleva a `skipHref`.
-
-  - El texto se revela char por char, cada letra con un fade-in. Un click
-    mientras aparece completa el texto al instante; un segundo click (si no
-    hay opciones) avanza al próximo step.
-
-  - Antes del primer step hay una pausa (START_DELAY): unos segundos de
-    sólo fondo antes de que empiece a aparecer el texto.
-
-  - `skipHref` es el destino tanto del botón de skip (esquina superior
-    derecha) como del final del guion: típicamente /lugares.
-*/
 
 /* Pausa inicial (ms) antes de que aparezca el primer texto: unos segundos
    de sólo fondo para ambientar. Sólo aplica al primer step. */
@@ -29,10 +9,6 @@ const START_DELAY = 3000;
 /* Tiempo (ms) que el step queda ineskippeable después de que el texto
    terminó de aparecer: no se puede avanzar ni elegir hasta que pase. */
 const READY_DELAY = 1000;
-
-type Option = { label: string; next: string | null };
-type Step = { text: string; next?: string | null; options?: Option[] };
-type Script = { start: string; steps: Record<string, Step> };
 
 type Props = {
   script: Script;
@@ -58,11 +34,6 @@ export default function VisualNovel({
 
   const step: Step | undefined = script.steps[currentId];
   const text = step?.text ?? '';
-
-  /* Cada vez que cambia el step reseteamos y revelamos el texto char por
-     char (cada letra hace su fade-in vía CSS al montarse). El primer step
-     espera START_DELAY antes de arrancar. prefers-reduced-motion: todo de
-     una. */
   useEffect(() => {
     setShown('');
     setDone(false);
@@ -118,12 +89,6 @@ export default function VisualNovel({
     }
     setCurrentId(next);
   };
-
-  /* Click en el escenario:
-       - hasta que el step esté ready (texto terminado + READY_DELAY) no
-         hace nada: el step es ineskippeable;
-       - si hay opciones, tampoco avanza (hay que elegir);
-       - si no, avanza al próximo step (o termina). */
   const handleAdvance = () => {
     if (!ready) return;
     if (step?.options?.length) return;
