@@ -14,7 +14,6 @@
     - Si no hay imagen, la card cae en layout text-only
 */
 import { url } from '../lib/url';
-import ShaderBackground from './ShaderBackground.tsx';
 
 type Props = {
   href: string;
@@ -28,16 +27,6 @@ type Props = {
        hero    - card destacada full-width (Vivídice en su categoría)
        section - card de navegación tipo "sección" (categorías en /lugares) */
   variant?: 'default' | 'hero' | 'section';
-  /* shaderBg=true: renderiza un canvas con el shader como fondo de la
-     card, más overlay oscuro para mantener legible el texto. Cada card
-     es su propio contexto WebGL — usar con moderación (Chrome aguanta
-     ~16 globales). client:visible difiere la inicialización hasta que
-     la card entre al viewport. */
-  shaderBg?: boolean;
-  /* shaderSeed: número arbitrario (0..1 típico) que desplaza el noise
-     y la fase de tiempo del shader, para que múltiples cards en la misma
-     página no se vean idénticas. */
-  shaderSeed?: number;
 };
 
 const {
@@ -48,8 +37,6 @@ const {
   imagen,
   imagenAlt,
   variant = 'default',
-  shaderBg = false,
-  shaderSeed = 0,
 } = Astro.props;
 
 const imageSrc = imagen
@@ -63,14 +50,8 @@ const imageSrc = imagen
     'entry-card',
     `entry-card--${variant}`,
     { 'entry-card--with-image': imageSrc },
-    { 'entry-card--shader': shaderBg },
   ]}
 >
-  {shaderBg && (
-    <div class="entry-card__shader" aria-hidden="true">
-      <ShaderBackground client:visible seed={shaderSeed} />
-    </div>
-  )}
   {imageSrc && (
     <div class="entry-card__media">
       <img src={imageSrc} alt={imagenAlt ?? title} loading="lazy" />
@@ -166,41 +147,6 @@ const imageSrc = imagen
   .entry-card:hover .entry-card__cta {
     color: var(--color-accent);
     transform: translateX(2px);
-  }
-
-  /*
-    Variante con shader: canvas propio detrás del contenido, overlay
-    oscuro para legibilidad. Cada card abre su propio contexto WebGL.
-  */
-  .entry-card__shader {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-  }
-
-  /* Overlay oscuro encima del shader, dentro de la misma card */
-  .entry-card__shader::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      to right,
-      rgba(37, 52, 63, 0.88) 0%,
-      rgba(37, 52, 63, 0.55) 50%,
-      rgba(37, 52, 63, 0.78) 100%
-    );
-  }
-
-  .entry-card--shader {
-    background: transparent;
-  }
-
-  .entry-card--shader .entry-card__body,
-  .entry-card--shader .entry-card__cta,
-  .entry-card--shader .entry-card__media {
-    position: relative;
-    z-index: 1;
   }
 
   /* Variantes */
