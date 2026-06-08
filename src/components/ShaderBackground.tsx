@@ -26,10 +26,8 @@ const FRAGMENT_SRC = `
      de modo que dos shaders con seeds distintos no se vean idénticos. */
   uniform float u_seed;
 
-  const vec3 BG   = vec3(0.0, 0.0, 0.0);
-  const vec3 WARM = vec3(0.039, 0.251, 0.329);
-  const vec3 GOLD = vec3(0.145, 0.435, 0.541);
-  const vec3 COOL = vec3(0.7, 0.0, 0.0);
+  const vec3 BG  = vec3(0.0, 0.0, 0.0);
+  const vec3 RED = vec3(0.7, 0.0, 0.0);
 
   vec4 permute(vec4 x) {
     return mod(((x * 34.0) + 1.0) * x, 289.0);
@@ -114,11 +112,16 @@ const FRAGMENT_SRC = `
       
     float f = fbm(wuv + 2.8 * r);
     
-    vec3 color = BG;
-    color = mix(color, WARM, smoothstep(0.20, 0.55, f) * 0.75);
-    color = mix(color, GOLD, smoothstep(0.52, 0.70, f) * 0.60);
-    color = mix(color, COOL, smoothstep(0.25, 0.48, q.x) * 0.40);
-    color = mix(color, BG, 0.38);
+    /* Solo rojo sobre negro puro. El campo de noise (f) y el warp (q.x)
+       definen dónde "fluye" el rojo. */
+    float redAmt = smoothstep(0.20, 0.55, f) * 0.75
+                 + smoothstep(0.25, 0.48, q.x) * 0.40;
+
+    vec3 color = mix(BG, RED, redAmt);
+
+    /* Mucho más imperceptible: bajamos la intensidad al 40% de lo actual,
+       dejando un fondo negro con un leve detalle de rojo fluyendo. */
+    color *= 0.40;
 
     gl_FragColor = vec4(color, 1.0);
   }
