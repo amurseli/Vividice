@@ -2,7 +2,7 @@
   "start": "1",
   "steps": {
     "1": {
-      "text": "Bienvenido...",
+      "text": "Oh.. ¡Hola!",
       "next": "2"
     },
     "2": {
@@ -14,32 +14,72 @@
       "next": "4"
     },
     "4": {
-      "text": "Un café caliente y el ruido de la lluvia. El olor herbal inundando el ambiente...\n¡Hey! Seguro a vos también te gustan las historias.\n\n¿Qué es lo que más te gustan de ellas?",
+      "text": "Un café caliente y el ruido de la lluvia. El olor herbal inundando el ambiente...",
+      "next": "5"
+    },
+    "5": {
+      "text": "¡Hey! Seguro a vos también te gustan las historias.\n\n¿Qué es lo que más te gusta de ellas?",
       "options": [
         {
           "label": "Sus personajes",
-          "next": "5a"
+          "set": {
+            "gusto": "personajes"
+          }
         },
         {
           "label": "Su Trama",
-          "next": "5b"
+          "set": {
+            "gusto": "trama"
+          }
         },
         {
           "label": "Su Mensaje",
-          "next": "5c"
+          "set": {
+            "gusto": "mensaje"
+          }
         }
-      ]
+      ],
+      "next": "6"
     },
-    "5c": {
-      "text": "",
-      "next": ""
+    "6": {
+      "text": {
+        "on": "gusto",
+        "cases": {
+          "personajes": "Sus personajes... Protagonistas y Antagonistas. Nos invitan a vernos reflejados, o desafiados.",
+          "trama": "Ya veo... La espina dorsal de toda historia, aunque es a menudo algo menospreciada. Yo creo que no existe desarrollo ni mensaje sin un camino que andar.",
+          "mensaje": "Claro... sos uno de esos ¿No? Jaja... No te preocupes, creo que todos lo somos en algún punto. Una visión autoral, un cambio en el mundo. Es fácil ver la importancia de un mensaje profundo, y nadie ama mas una historia que una que tiene algo que decir."
+        },
+        "default": ""
+      },
+      "next": "7"
     },
-    "5b": {
-      "text": "",
-      "next": ""
+    "7": {
+      "text": "Para mí... lo más importante de cuaqluier historia, o incluso de cualquier medio, ese su capacidad de cambiar el mundo.",
+      "next": "8"
     },
-    "5a": {
-      "text": "",
+    "8": {
+      "text": "Te sorprendería la cantidad de veces que una canción de boca en boca alentó una revolución. ",
+      "next": "9"
+    },
+    "9": {
+      "text": "Cuantas veces un mito transmitió los conocimientos necesarios para salvar civilizaciones enteras.",
+      "next": "10"
+    },
+    "10": {
+      "text": "Creo que ese es el propósito de una historia. Su legado. ",
+      "next": "11"
+    },
+    "11": {
+      "text": "Quizás \"propósito\" no sea la palabra indicada, pero dejámelo pasar, ¿Dale? Ja ja ja.",
+      "next": "12"
+    },
+    "12": {
+      "text": "En Fin...\n¡Por Haddar! ¿Que modales los míos?\nOlvidé preguntarte tu nombre",
+      "input": {
+        "flag": "nombre",
+        "max": 20,
+        "placeholder": "Tu nombre..."
+      },
       "next": ""
     }
   }

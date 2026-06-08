@@ -103,6 +103,12 @@
   .del { color: var(--muted); border-color: transparent; background: transparent; }
   .del:hover { color: var(--accent); }
   .hint { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 10px; }
+  .toggle { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; text-transform: none; letter-spacing: 0; cursor: pointer; }
+  .toggle input { width: auto; margin: 0; }
+  .kvrow { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+  .kvrow input { min-width: 0; }
+  .kvrow .eq { color: var(--muted); }
+  .lbl.row { display: flex; align-items: center; justify-content: space-between; }
   .warn { color: var(--accent); }
   .insp__actions { display: flex; gap: 8px; margin-top: 18px; }
 
@@ -143,6 +149,8 @@
   <aside id="inspector" class="inspector"></aside>
 </div>
 
+<datalist id="flagnames"></datalist>
+
 <div id="overlay" class="overlay">
   <span class="pv__close">esc para cerrar</span>
   <div class="pv"><p id="pvText" class="pv__text"></p><div id="pvAfter"></div></div>
@@ -154,7 +162,11 @@ const W = 190, H = 64;
 const POS_KEY = 'vividice:intro-pos';
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, props = {}, kids = []) => {
-  const n = Object.assign(document.createElement(tag), props);
+  /* `list` es propiedad de sólo-lectura en <input> (apunta al datalist), así
+     que va por setAttribute; el resto por asignación directa. */
+  const { list, ...rest } = props;
+  const n = Object.assign(document.createElement(tag), rest);
+  if (list != null) n.setAttribute('list', list);
   for (const k of [].concat(kids)) if (k != null) n.append(k);
   return n;
 };
@@ -173,9 +185,83 @@ const inspector = $('#inspector');
 function setStatus(msg, cls = '') { const s = $('#status'); s.textContent = msg; s.className = 'status ' + cls; }
 function markDirty() { dirty = true; setStatus('cambios sin guardar', 'err'); }
 function kindOf(step) {
+  if (step.input) return 'input';
   if (Array.isArray(step.options)) return 'choice';
-  if (step.next !== undefined && step.next !== null) return 'next';
-  return 'end';
+  /* 'continuar' si existe la clave next (aunque su destino esté sin definir);
+     'fin' sólo si no existe. Así un destino vacío no se confunde con un final. */
+  return 'next' in step ? 'next' : 'end';
+}
+/* ¿Alguna opción tiene su propio destino? Entonces la elección bifurca y
+   dibuja un puerto por opción. Si no, converge: un solo puerto al `next`. */
+function optionBranches(o) { return 'next' in o; }   // tiene destino propio (aunque sea fin)
+function isBranchingChoice(step) {
+  return Array.isArray(step.options) && step.options.some(optionBranches);
+}
+function isFlagChoice(step) {
+  return Array.isArray(step.options) && !isBranchingChoice(step);
+}
+/* Todas las flags nombradas en el guion, para autocompletar. */
+function allFlags() {
+  const names = new Set();
+  const addKeys = (o) => o && Object.keys(o).forEach((k) => names.add(k));
+  for (const s of Object.values(script.steps)) {
+    addKeys(s.set);
+    if (s.text && typeof s.text === 'object' && s.text.on) names.add(s.text.on);
+    if (Array.isArray(s.next)) s.next.forEach((r) => addKeys(r.when));
+    if (Array.isArray(s.options)) for (const o of s.options) { addKeys(o.set); addKeys(o.when); }
+  }
+  return [...names].filter(Boolean);
+}
+function refreshFlagList() {
+  const dl = $('#flagnames');
+  dl.innerHTML = '';
+  for (const f of allFlags()) dl.append(el('option', { value: f }));
+}
+/* Opciones-flag de todo el guion que convergen en `id`. Da los "inputs" del
+   nodo: cada una aporta {flag, value, label} para derivar un texto por elección. */
+function incomingCases(id) {
+  const out = [];
+  for (const s of Object.values(script.steps)) {
+    if (!isFlagChoice(s) || s.next !== id) continue;
+    for (const o of s.options) {
+      if (!o.set) continue;
+      for (const [flag, value] of Object.entries(o.set)) out.push({ flag, value, label: o.label });
+    }
+  }
+  return out;
+}
+/* Cantidad de puertos de salida (para anclas y aristas). */
+function outCount(step) {
+  const k = kindOf(step);
+  if (k === 'next' || k === 'input') return Array.isArray(step.next) ? step.next.length : 1;
+  if (k === 'choice') return isBranchingChoice(step) ? step.options.length : 1;
+  return 0;
+}
+function nodeTextPreview(step) {
+  const t = step.text;
+  if (t && typeof t === 'object') {
+    const first = Object.values(t.cases || {}).find(Boolean) || t.default;
+    return '⌥ ' + (first || '(texto variable)');
+  }
+  return t || '(sin texto)';
+}
+function kindLabel(step) {
+  const k = kindOf(step);
+  if (k === 'input') return 'campo · ' + (step.input.flag || '?');
+  if (k === 'next') return Array.isArray(step.next) ? 'continuar · ' + step.next.length + ' ramas' : 'continuar';
+  if (k === 'choice') return (isFlagChoice(step) ? 'flag · ' : 'elección · ') + step.options.length;
+  return 'fin';
+}
+/* Destino de cada puerto, alineado con outAnchors. */
+function outTargets(id) {
+  const step = script.steps[id], k = kindOf(step);
+  if (k === 'next' || k === 'input') return Array.isArray(step.next) ? step.next.map((r) => r.go) : [step.next];
+  if (k === 'choice') {
+    const shared = typeof step.next === 'string' ? step.next : null;
+    if (!isBranchingChoice(step)) return [shared];   // converge: un solo puerto
+    return step.options.map((o) => (optionBranches(o) ? (o.next || null) : shared));
+  }
+  return [];
 }
 function loadPos() { try { pos = JSON.parse(localStorage.getItem(POS_KEY)) || {}; } catch { pos = {}; } }
 function savePos() { localStorage.setItem(POS_KEY, JSON.stringify(pos)); }
@@ -207,12 +293,16 @@ async function load() {
   const res = await fetch('/api/script');
   script = await res.json();
   loadPos();
+  /* Normaliza los ids al abrir, según la topología actual. */
+  const remap = recomputeIds();
+  const renamed = Object.keys(remap).some((k) => remap[k] !== k);
   autolayout();
-  dirty = false;
   selected = null;
+  dirty = renamed;
+  refreshFlagList();
   renderGraph();
   renderInspector();
-  setStatus('cargado', 'ok');
+  setStatus(renamed ? 'cargado · ids renumerados (guardá para fijar)' : 'cargado', renamed ? '' : 'ok');
 }
 
 async function save() {
@@ -229,10 +319,10 @@ function applyView() { world.style.transform = `translate(${view.x}px, ${view.y}
 
 function outAnchors(id, step) {
   const p = pos[id];
-  if (kindOf(step) === 'next') return [{ x: p.x + W, y: p.y + H / 2 }];
-  if (kindOf(step) === 'choice')
-    return step.options.map((_, i) => ({ x: p.x + W, y: p.y + (H * (i + 1)) / (step.options.length + 1) }));
-  return [];
+  const n = outCount(step);
+  if (n === 0) return [];
+  if (n === 1) return [{ x: p.x + W, y: p.y + H / 2 }];
+  return Array.from({ length: n }, (_, i) => ({ x: p.x + W, y: p.y + (H * (i + 1)) / (n + 1) }));
 }
 function inAnchor(id) { const p = pos[id]; return { x: p.x, y: p.y + H / 2 }; }
 
@@ -241,7 +331,7 @@ function drawEdges() {
   for (const [id, step] of Object.entries(script.steps)) {
     const k = kindOf(step);
     const outs = outAnchors(id, step);
-    const targets = k === 'choice' ? step.options.map((o) => o.next) : [step.next];
+    const targets = outTargets(id);
     targets.forEach((t, i) => {
       if (!t || !script.steps[t]) return;
       const a = outs[i], b = inAnchor(t);
@@ -251,6 +341,7 @@ function drawEdges() {
       path.setAttribute('fill', 'none');
       path.setAttribute('stroke', k === 'choice' ? 'var(--accent-2)' : 'var(--muted)');
       path.setAttribute('stroke-width', '1.5');
+      if (isFlagChoice(step)) path.setAttribute('stroke-dasharray', '4 4');
       path.setAttribute('opacity', id === selected ? '1' : '0.55');
       svg.append(path);
     });
@@ -272,8 +363,8 @@ function renderGraph() {
         id === script.start ? el('span', { className: 'star', textContent: '★' }) : null,
         document.createTextNode(id),
       ]),
-      el('div', { className: 'node__text', textContent: step.text || '(sin texto)' }),
-      el('div', { className: 'node__kind k-' + k, textContent: k === 'next' ? 'continuar' : k === 'choice' ? 'elección · ' + step.options.length : 'fin' }),
+      el('div', { className: 'node__text', textContent: nodeTextPreview(step) }),
+      el('div', { className: 'node__kind k-' + k, textContent: kindLabel(step) }),
     );
 
     const inp = el('div', { className: 'port in' });
@@ -357,11 +448,18 @@ function startWire(fromId, i, e) {
       savePos();
     }
     if (targetId === fromId) return renderGraph();
-    const s = script.steps[fromId];
-    if (kindOf(s) === 'choice') s.options[i].next = targetId;
-    else s.next = targetId;
+    const s = script.steps[fromId], k = kindOf(s);
+    if (k === 'choice') {
+      if (isBranchingChoice(s)) s.options[i].next = targetId;  // puerto por opción
+      else s.next = targetId;                                  // puerto único: converge
+    } else if (Array.isArray(s.next)) {
+      s.next[i].go = targetId;                 // rama condicional
+    } else {
+      s.next = targetId;
+    }
+    const remap = recomputeIds();
     markDirty();
-    select(targetId);
+    select(remap[targetId] || targetId);
   };
   window.addEventListener('mousemove', move);
   window.addEventListener('mouseup', up);
@@ -382,12 +480,90 @@ function freshId() {
   return String(n);
 }
 
+/* ── IDs estructurales: se recalculan desde la topología ──────────────────
+   Spine numérico (1,2,3…), una letra por rama al bifurcar (4a,4b,4c) y -N
+   para lo que sigue dentro de una rama (4a-1, 4a-2). Recorrido BFS desde el
+   inicio; un nodo de convergencia conserva el id de la primera rama que lo
+   alcanza. */
+function idLetter(i) {
+  let s = '', n = i;
+  do { s = String.fromCharCode(97 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);
+  return s;
+}
+function continueId(parent) {
+  const m = parent.match(/\d+$/);
+  if (m) return parent.slice(0, parent.length - m[0].length) + (Number(m[0]) + 1);
+  return parent + '-1';
+}
+function uniqueId(base, taken) {
+  if (!taken.has(base)) return base;
+  let n = 2, id = base + '_' + n;
+  while (taken.has(id)) { n++; id = base + '_' + n; }
+  return id;
+}
+/* Targets distintos y existentes de un nodo, en orden de puerto. */
+function distinctTargets(id) {
+  const seen = new Set(), out = [];
+  for (const t of outTargets(id)) {
+    if (!t || !script.steps[t] || seen.has(t)) continue;
+    seen.add(t); out.push(t);
+  }
+  return out;
+}
+function recomputeIds() {
+  const start = script.start;
+  const remap = {};
+  if (!script.steps[start]) { for (const id of Object.keys(script.steps)) remap[id] = id; return remap; }
+  const taken = new Set(['1']);
+  remap[start] = '1';
+  const queue = [start];
+  while (queue.length) {
+    const oldId = queue.shift();
+    const newId = remap[oldId];
+    const targets = distinctTargets(oldId);
+    const branching = targets.length > 1;
+    targets.forEach((tOld, i) => {
+      if (remap[tOld] !== undefined) return;            // convergencia/ciclo: ya tiene id
+      let cand = uniqueId(branching ? newId + idLetter(i) : continueId(newId), taken);
+      remap[tOld] = cand; taken.add(cand); queue.push(tOld);
+    });
+  }
+  for (const oldId of Object.keys(script.steps)) {       // nodos sueltos: conservan su id
+    if (remap[oldId] === undefined) { const c = uniqueId(oldId, taken); remap[oldId] = c; taken.add(c); }
+  }
+  applyRemap(remap);
+  return remap;
+}
+function applyRemap(remap) {
+  const r = (v) => (typeof v === 'string' && remap[v] !== undefined ? remap[v] : v);
+  const steps = {};
+  for (const [oldId, step] of Object.entries(script.steps)) {
+    if (typeof step.next === 'string') step.next = r(step.next);
+    else if (Array.isArray(step.next)) for (const rule of step.next) rule.go = r(rule.go);
+    if (Array.isArray(step.options)) for (const o of step.options) if ('next' in o) o.next = r(o.next);
+    steps[remap[oldId]] = step;
+  }
+  script.steps = steps;
+  script.start = r(script.start);
+  const np = {};
+  for (const [oldId, p] of Object.entries(pos)) np[remap[oldId] !== undefined ? remap[oldId] : oldId] = p;
+  pos = np; savePos();
+  if (selected != null) selected = r(selected);
+}
+/* Aplica un cambio estructural: recalcula ids y redibuja. */
+function structuralChange() { recomputeIds(); markDirty(); renderGraph(); renderInspector(); }
+
 function changeKind(id, kind) {
   const step = script.steps[id];
-  delete step.next; delete step.options;
+  delete step.next; delete step.options; delete step.input;
   if (kind === 'next') step.next = '';
-  else if (kind === 'choice') step.options = [{ label: 'Opción A', next: '' }, { label: 'Opción B', next: '' }];
-  markDirty(); renderGraph(); renderInspector();
+  else if (kind === 'input') { step.input = { flag: 'nombre', max: 20 }; step.next = ''; }
+  else if (kind === 'choice') {
+    /* Por defecto, elección convergente (recuerda flag y sigue al mismo nodo). */
+    step.options = [{ label: 'Opción A', set: { flag: '' } }, { label: 'Opción B', set: { flag: '' } }];
+    step.next = '';
+  }
+  structuralChange();
 }
 
 function renameStep(oldId, raw) {
@@ -399,6 +575,7 @@ function renameStep(oldId, raw) {
   script.steps = rebuilt;
   for (const step of Object.values(script.steps)) {
     if (step.next === oldId) step.next = newId;
+    if (Array.isArray(step.next)) for (const r of step.next) if (r.go === oldId) r.go = newId;
     if (Array.isArray(step.options)) for (const o of step.options) if (o.next === oldId) o.next = newId;
   }
   if (script.start === oldId) script.start = newId;
@@ -413,10 +590,11 @@ function deleteStep(id) {
   delete pos[id]; savePos();
   for (const step of Object.values(script.steps)) {
     if (step.next === id) step.next = '';
+    if (Array.isArray(step.next)) for (const r of step.next) if (r.go === id) r.go = '';
     if (Array.isArray(step.options)) for (const o of step.options) if (o.next === id) o.next = '';
   }
   if (selected === id) selected = null;
-  markDirty(); renderGraph(); renderInspector();
+  structuralChange();
 }
 
 function nextSelect(value, selfId, onChange) {
@@ -429,6 +607,68 @@ function nextSelect(value, selfId, onChange) {
   sel.value = value || '';
   sel.onchange = () => onChange(sel.value);
   return sel;
+}
+
+function updateNodeText(id) {
+  const n = world.querySelector(`.node[data-id="${id}"] .node__text`);
+  if (n) n.textContent = nodeTextPreview(script.steps[id]);
+}
+
+/* Editor de pares flag=valor sobre un objeto vivo. Los valores se mutan en el
+   acto (sin re-render); cambiar/agregar/quitar claves llama a onStruct. */
+function kvEditor(obj, addLabel, onStruct) {
+  const wrap = el('div');
+  for (const key of Object.keys(obj)) {
+    const ki = el('input', { value: key, placeholder: 'flag', list: 'flagnames' });
+    const vi = el('input', { value: obj[key], placeholder: 'valor' });
+    const rm = el('button', { className: 'del', textContent: '✕' });
+    vi.oninput = () => { obj[key] = vi.value; markDirty(); };
+    ki.onchange = () => {
+      const nk = ki.value.trim();
+      if (nk === key) return;
+      const v = obj[key]; delete obj[key];
+      if (nk) obj[nk] = v;
+      onStruct();
+    };
+    rm.onclick = () => { delete obj[key]; onStruct(); };
+    wrap.append(el('div', { className: 'kvrow' }, [ki, el('span', { className: 'eq', textContent: '=' }), vi, rm]));
+  }
+  const add = el('button', { textContent: addLabel || '+ flag', style: 'margin-top:6px' });
+  add.onclick = () => { let n = 'flag'; while (obj[n] !== undefined) n += '_'; obj[n] = ''; onStruct(); };
+  wrap.append(add);
+  return wrap;
+}
+
+function toggleTextVariable(id, on) {
+  const step = script.steps[id];
+  if (on) {
+    const plain = typeof step.text === 'string' ? step.text : '';
+    step.text = { on: '', cases: {}, default: plain };
+  } else {
+    const t = step.text;
+    step.text = (t && typeof t === 'object')
+      ? (Object.values(t.cases).find(Boolean) || t.default || '')
+      : (t || '');
+  }
+  markDirty(); renderInspector(); updateNodeText(id);
+}
+
+function toggleBranch(id, on) {
+  const step = script.steps[id];
+  if (on) {
+    const cur = typeof step.next === 'string' ? step.next : '';
+    step.next = [{ when: { flag: '' }, go: cur }, { go: '' }];
+  } else {
+    step.next = Array.isArray(step.next) ? (step.next.find((r) => r.go)?.go || '') : (step.next || '');
+  }
+  structuralChange();
+}
+
+function setOptionMode(id, i, mode) {
+  const opt = script.steps[id].options[i];
+  if (mode === 'set') { delete opt.next; opt.set = opt.set || { flag: '' }; }
+  else { delete opt.set; opt.next = ''; }
+  structuralChange();
 }
 
 function renderInspector() {
@@ -446,58 +686,225 @@ function renderInspector() {
     idInput, el('span', { className: 'spacer' }), close,
   ]));
 
-  inspector.append(el('span', { className: 'lbl', textContent: 'Texto' }));
-  const text = el('textarea', { value: step.text || '' });
-  text.oninput = () => {
-    step.text = text.value; markDirty();
-    const n = world.querySelector(`.node[data-id="${id}"] .node__text`);
-    if (n) n.textContent = step.text || '(sin texto)';
-  };
-  inspector.append(text);
+  const textVariable = step.text && typeof step.text === 'object';
+  const textHead = el('div', { className: 'lbl row' });
+  textHead.append(el('span', { textContent: 'Texto' }));
+  const tvLabel = el('label', { className: 'toggle' });
+  const tvCb = el('input', { type: 'checkbox' }); tvCb.checked = !!textVariable;
+  tvCb.onchange = () => toggleTextVariable(id, tvCb.checked);
+  tvLabel.append(tvCb, document.createTextNode('variable según flag'));
+  textHead.append(tvLabel);
+  inspector.append(textHead);
+
+  if (!textVariable) {
+    const text = el('textarea', { value: step.text || '' });
+    text.oninput = () => { step.text = text.value; markDirty(); updateNodeText(id); };
+    inspector.append(text);
+  } else {
+    const tv = step.text;
+    const incoming = incomingCases(id);
+    const flags = [...new Set(incoming.map((c) => c.flag))];
+    /* Si una sola flag converge acá, la elegimos sola. */
+    if (!tv.on && flags.length === 1) tv.on = flags[0];
+
+    inspector.append(el('span', { className: 'lbl', textContent: 'Según la flag' }));
+    const onInp = el('input', { value: tv.on || '', placeholder: 'nombre de flag', list: 'flagnames' });
+    onInp.oninput = () => { tv.on = onInp.value; markDirty(); renderInspector(); };
+    inspector.append(onInp);
+
+    const covered = new Set();
+    const caseBox = (value, label, removable) => {
+      covered.add(value);
+      const ta = el('textarea', { value: tv.cases[value] || '', placeholder: 'texto para esta entrada' });
+      ta.oninput = () => { tv.cases[value] = ta.value; markDirty(); updateNodeText(id); };
+      const head = [el('span', { textContent: label })];
+      if (removable) {
+        const rm = el('button', { className: 'del', textContent: '✕' });
+        rm.onclick = () => { delete tv.cases[value]; markDirty(); renderInspector(); updateNodeText(id); };
+        head.push(rm);
+      }
+      inspector.append(el('div', { className: 'opt' }, [el('div', { className: 'opt__head' }, head), ta]));
+    };
+
+    const auto = incoming.filter((c) => c.flag === tv.on);
+    if (auto.length) {
+      inspector.append(el('span', { className: 'lbl', textContent: 'Respuesta según la elección' }));
+      for (const c of auto) caseBox(c.value, '« ' + c.label + ' »', false);
+    }
+
+    /* Casos manuales: valores de la flag que no vienen de una opción entrante. */
+    const extra = Object.keys(tv.cases).filter((v) => !covered.has(v));
+    if (extra.length || !auto.length) {
+      inspector.append(el('span', { className: 'lbl', textContent: auto.length ? 'Otros casos (valor → texto)' : 'Casos (valor → texto)' }));
+      for (const val of extra) {
+        const vi = el('input', { value: val, placeholder: 'valor de la flag' });
+        const ta = el('textarea', { value: tv.cases[val], placeholder: 'texto para este valor' });
+        const rm = el('button', { className: 'del', textContent: '✕' });
+        ta.oninput = () => { tv.cases[val] = ta.value; markDirty(); updateNodeText(id); };
+        vi.onchange = () => {
+          const nv = vi.value.trim(); if (nv === val) return;
+          const t = tv.cases[val]; delete tv.cases[val]; if (nv) tv.cases[nv] = t;
+          markDirty(); renderInspector(); updateNodeText(id);
+        };
+        rm.onclick = () => { delete tv.cases[val]; markDirty(); renderInspector(); updateNodeText(id); };
+        inspector.append(el('div', { className: 'opt' }, [el('div', { className: 'opt__head' }, [vi, rm]), ta]));
+      }
+      const addCase = el('button', { textContent: '+ caso', style: 'margin-top:8px' });
+      addCase.onclick = () => { let n = 'valor'; while (tv.cases[n] !== undefined) n += '_'; tv.cases[n] = ''; markDirty(); renderInspector(); };
+      inspector.append(addCase);
+    }
+
+    inspector.append(el('span', { className: 'lbl', textContent: 'Texto por defecto' }));
+    const def = el('textarea', { value: tv.default || '' });
+    def.oninput = () => { tv.default = def.value; markDirty(); updateNodeText(id); };
+    inspector.append(def);
+  }
+
+  inspector.append(el('div', { className: 'hint', textContent: 'Tip: escribí {flag} en cualquier texto para insertar el valor actual de esa flag.' }));
+
+  inspector.append(el('span', { className: 'lbl', textContent: 'Flags al entrar' }));
+  if (!step.set || Object.keys(step.set).length === 0) {
+    const addSet = el('button', { className: 'ghost', textContent: '+ setear flag al entrar', style: 'font-size:11px' });
+    addSet.onclick = () => { step.set = { flag: '' }; markDirty(); renderInspector(); };
+    inspector.append(addSet);
+  } else {
+    inspector.append(kvEditor(step.set, '+ flag', () => {
+      if (Object.keys(step.set).length === 0) delete step.set;
+      markDirty(); renderGraph(); renderInspector();
+    }));
+  }
 
   inspector.append(el('span', { className: 'lbl', textContent: 'Salida' }));
   const kindSel = el('select');
-  for (const [v, label] of [['next', 'Continuar'], ['choice', 'Elección'], ['end', 'Fin']])
+  for (const [v, label] of [['next', 'Continuar'], ['choice', 'Elección'], ['input', 'Campo de texto'], ['end', 'Fin']])
     kindSel.append(el('option', { value: v, textContent: label }));
   kindSel.value = k;
   kindSel.onchange = () => changeKind(id, kindSel.value);
   inspector.append(kindSel);
 
-  if (k === 'next') {
+  if (k === 'input') {
+    const spec = step.input;
+    inspector.append(el('span', { className: 'lbl', textContent: 'Guarda lo escrito en la flag' }));
+    const flagInp = el('input', { value: spec.flag || '', placeholder: 'nombre', list: 'flagnames' });
+    flagInp.oninput = () => { spec.flag = flagInp.value.trim(); markDirty(); renderGraph(); };
+    inspector.append(flagInp);
+
+    inspector.append(el('span', { className: 'lbl', textContent: 'Máx. caracteres' }));
+    const maxInp = el('input', { type: 'number', min: '1', max: '200', value: spec.max ?? 20 });
+    maxInp.oninput = () => { spec.max = Math.max(1, Number(maxInp.value) || 1); markDirty(); };
+    inspector.append(maxInp);
+
+    inspector.append(el('span', { className: 'lbl', textContent: 'Placeholder (opcional)' }));
+    const phInp = el('input', { value: spec.placeholder || '', placeholder: 'Tu nombre…' });
+    phInp.oninput = () => { spec.placeholder = phInp.value; markDirty(); };
+    inspector.append(phInp);
+
     inspector.append(el('span', { className: 'lbl', textContent: 'Siguiente paso' }));
-    inspector.append(nextSelect(step.next, id, (v) => { step.next = v; markDirty(); renderGraph(); }));
+    inspector.append(nextSelect(typeof step.next === 'string' ? step.next : '', id, (v) => { step.next = v; structuralChange(); }));
+    inspector.append(el('div', { className: 'hint', textContent: 'El jugador escribe libremente; se guarda en la flag y podés usarlo con {' + (spec.flag || 'flag') + '}.' }));
+  }
+
+  if (k === 'next') {
+    const branched = Array.isArray(step.next);
+    const nextHead = el('div', { className: 'lbl row' });
+    nextHead.append(el('span', { textContent: 'Siguiente' }));
+    const brLabel = el('label', { className: 'toggle' });
+    const brCb = el('input', { type: 'checkbox' }); brCb.checked = branched;
+    brCb.onchange = () => toggleBranch(id, brCb.checked);
+    brLabel.append(brCb, document.createTextNode('ramificar según flag'));
+    nextHead.append(brLabel);
+    inspector.append(nextHead);
+
+    if (!branched) {
+      inspector.append(nextSelect(step.next, id, (v) => { step.next = v; structuralChange(); }));
+    } else {
+      step.next.forEach((rule, i) => {
+        const isDefault = !rule.when || Object.keys(rule.when).length === 0;
+        const rm = el('button', { className: 'del', textContent: '✕' });
+        rm.onclick = () => { step.next.splice(i, 1); structuralChange(); };
+        const box = el('div', { className: 'opt' }, [
+          el('div', { className: 'opt__head' }, [el('span', { textContent: isDefault ? 'por defecto' : 'rama #' + (i + 1) }), rm]),
+        ]);
+        if (!isDefault) {
+          box.append(el('span', { className: 'lbl', textContent: 'Si' }));
+          box.append(kvEditor(rule.when, '+ condición', () => { markDirty(); renderInspector(); }));
+        }
+        box.append(el('span', { className: 'lbl', textContent: 'Va a' }));
+        box.append(nextSelect(rule.go, id, (v) => { rule.go = v; structuralChange(); }));
+        inspector.append(box);
+      });
+      const addRule = el('button', { textContent: '+ rama', style: 'margin-top:8px' });
+      addRule.onclick = () => { step.next.push({ when: { flag: '' }, go: '' }); structuralChange(); };
+      inspector.append(addRule);
+      inspector.append(el('div', { className: 'hint', textContent: 'La primera rama que matchea gana. Una sin condición es el fallback.' }));
+    }
   }
 
   if (k === 'choice') {
+    /* Destino compartido: mientras alguna opción no bifurque, la elección
+       converge a este nodo (un solo cable de salida). */
+    if (step.options.some((o) => !optionBranches(o))) {
+      inspector.append(el('span', { className: 'lbl', textContent: 'Después de elegir, continúa a' }));
+      const cur = typeof step.next === 'string' ? step.next : '';
+      inspector.append(nextSelect(cur, id, (v) => { step.next = v; structuralChange(); }));
+    }
+
     inspector.append(el('span', { className: 'lbl', textContent: 'Opciones' }));
     step.options.forEach((opt, i) => {
+      const branches = optionBranches(opt);
+      const rm = el('button', { className: 'del', textContent: '✕' });
+      rm.onclick = () => { step.options.splice(i, 1); structuralChange(); };
+      const box = el('div', { className: 'opt' }, [
+        el('div', { className: 'opt__head' }, [el('span', { textContent: '#' + (i + 1) }), rm]),
+      ]);
+
       const labelInput = el('input', { value: opt.label || '', placeholder: 'Texto del botón' });
       labelInput.oninput = () => { opt.label = labelInput.value; markDirty(); };
-      const rm = el('button', { className: 'del', textContent: '✕' });
-      rm.onclick = () => { step.options.splice(i, 1); markDirty(); renderGraph(); renderInspector(); };
-      inspector.append(el('div', { className: 'opt' }, [
-        el('div', { className: 'opt__head' }, [el('span', { textContent: '#' + (i + 1) }), rm]),
-        labelInput,
-        el('span', { className: 'lbl', textContent: 'Va a' }),
-        nextSelect(opt.next, id, (v) => { opt.next = v; markDirty(); renderGraph(); }),
-      ]));
+      box.append(labelInput);
+
+      if (!branches) {
+        /* Caso común: recuerda una flag y sigue al destino compartido. */
+        box.append(el('span', { className: 'lbl', textContent: 'Recuerda' }));
+        box.append(kvEditor(opt.set || (opt.set = {}), '+ flag', () => { markDirty(); renderGraph(); renderInspector(); }));
+        const toBranch = el('button', { className: 'ghost', textContent: '⇗ que esta opción abra otro camino', style: 'margin-top:6px;font-size:11px' });
+        toBranch.onclick = () => setOptionMode(id, i, 'next');
+        box.append(toBranch);
+      } else {
+        box.append(el('span', { className: 'lbl', textContent: 'Abre el camino' }));
+        box.append(nextSelect(opt.next, id, (v) => { opt.next = v; structuralChange(); }));
+        const toFlag = el('button', { className: 'ghost', textContent: '↩ que solo recuerde y converja', style: 'margin-top:6px;font-size:11px' });
+        toFlag.onclick = () => setOptionMode(id, i, 'set');
+        box.append(toFlag);
+      }
+
+      if (opt.when) {
+        box.append(el('span', { className: 'lbl', textContent: 'Mostrar si' }));
+        box.append(kvEditor(opt.when, '+ condición', () => {
+          if (Object.keys(opt.when).length === 0) delete opt.when;
+          markDirty(); renderInspector();
+        }));
+      } else {
+        const addWhen = el('button', { className: 'ghost', textContent: '+ mostrar si…', style: 'margin-top:6px;font-size:11px' });
+        addWhen.onclick = () => { opt.when = { flag: '' }; markDirty(); renderInspector(); };
+        box.append(addWhen);
+      }
+      inspector.append(box);
     });
     const addOpt = el('button', { textContent: '+ opción', style: 'margin-top:10px' });
-    addOpt.onclick = () => {
-      step.options.push({ label: 'Nueva opción', next: '' });
-      markDirty(); renderGraph(); renderInspector();
-    };
+    addOpt.onclick = () => { step.options.push({ label: 'Nueva opción', set: { flag: '' } }); structuralChange(); };
     inspector.append(addOpt);
+
     if (step.options.length === 0) inspector.append(el('div', { className: 'hint warn', textContent: 'Sin opciones, no puede avanzar.' }));
   }
 
   if (k === 'end') inspector.append(el('div', { className: 'hint', textContent: 'Este paso termina la novela.' }));
 
   const startBtn = el('button', { textContent: id === script.start ? '★ es el inicio' : 'Marcar como inicio', disabled: id === script.start });
-  startBtn.onclick = () => { script.start = id; markDirty(); renderGraph(); renderInspector(); };
+  startBtn.onclick = () => { script.start = id; structuralChange(); };
   const delBtn = el('button', { className: 'del', textContent: 'Borrar paso', disabled: id === script.start });
   delBtn.onclick = () => deleteStep(id);
   inspector.append(el('div', { className: 'insp__actions' }, [startBtn, delBtn]));
+  refreshFlagList();
 }
 
 function addNode() {
@@ -544,14 +951,36 @@ document.addEventListener('keydown', (e) => {
 });
 
 const overlay = $('#overlay');
-let pv = { id: null, full: '', typing: false, timer: 0 };
+let pv = { id: null, full: '', typing: false, timer: 0, flags: {} };
 function pvStop() { clearInterval(pv.timer); pv.typing = false; }
 function pvClose() { pvStop(); overlay.classList.remove('open'); }
+function pvMatches(cond) {
+  if (!cond) return true;
+  return Object.entries(cond).every(([k, v]) => String(pv.flags[k] ?? '') === String(v));
+}
+function pvText(step) {
+  const t = step.text;
+  let s = '';
+  if (t) {
+    if (typeof t === 'string') s = t;
+    else { const v = pv.flags[t.on]; s = v != null && t.cases[v] != null ? t.cases[v] : (t.default || ''); }
+  }
+  return s.replace(/\{(\w+)\}/g, (m, n) => (n in pv.flags ? pv.flags[n] : m));
+}
+function pvOptions(step) { return (step.options || []).filter((o) => pvMatches(o.when)); }
+function pvNext(next) {
+  if (next == null) return null;
+  if (typeof next === 'string') return next || null;
+  for (const r of next) if (pvMatches(r.when)) return r.go || null;
+  return null;
+}
+function pvGo(dest) { (dest && script.steps[dest]) ? pvType(dest) : pvClose(); }
 function pvType(id) {
   pvStop();
   const step = script.steps[id];
   if (!step) return pvClose();
-  pv.id = id; pv.full = step.text || '';
+  if (step.set) Object.assign(pv.flags, step.set);
+  pv.id = id; pv.full = pvText(step);
   $('#pvText').innerHTML = ''; $('#pvAfter').innerHTML = '';
   let i = 0; pv.typing = true;
   pv.timer = setInterval(() => {
@@ -571,22 +1000,43 @@ function pvDone(id) {
   const k = kindOf(step);
   if (k === 'choice') {
     const ul = el('ul', { className: 'pv__opts' });
-    for (const opt of step.options) {
+    for (const opt of pvOptions(step)) {
       const b = el('button', { textContent: opt.label });
-      b.onclick = (e) => { e.stopPropagation(); (opt.next && script.steps[opt.next]) ? pvType(opt.next) : pvClose(); };
+      b.onclick = (e) => {
+        e.stopPropagation();
+        if (opt.set) Object.assign(pv.flags, opt.set);
+        pvGo('next' in opt ? (opt.next || null) : pvNext(step.next));
+      };
       ul.append(el('li', {}, b));
     }
     after.append(ul);
+  } else if (k === 'input') {
+    const spec = step.input, max = spec.max ?? 20, min = spec.min ?? 1;
+    const field = el('input', { type: 'text', maxLength: max, placeholder: spec.placeholder || '' });
+    const ok = el('button', { textContent: '→' });
+    const submit = (e) => {
+      e?.stopPropagation();
+      const v = field.value.trim();
+      if (v.length < min || v.length > max) return;
+      pv.flags[spec.flag] = v;
+      pvGo(pvNext(step.next));
+    };
+    ok.onclick = submit;
+    field.onkeydown = (e) => { if (e.key === 'Enter') submit(e); };
+    const wrap = el('div', { className: 'pv__opts' }, [field, ok]);
+    wrap.onclick = (e) => e.stopPropagation();
+    after.append(wrap);
+    setTimeout(() => field.focus(), 0);
   } else after.append(el('div', { className: 'pv__arrow', textContent: k === 'next' ? '↓' : '— fin —' }));
 }
 overlay.onclick = () => {
   if (pv.typing) return pvComplete();
   const step = script.steps[pv.id]; if (!step) return pvClose();
   const k = kindOf(step);
-  if (k === 'next') (step.next && script.steps[step.next]) ? pvType(step.next) : pvClose();
+  if (k === 'next') pvGo(pvNext(step.next));
   else if (k === 'end') pvClose();
 };
-$('#play').onclick = () => { overlay.classList.add('open'); pvType(script.start); };
+$('#play').onclick = () => { pv.flags = {}; overlay.classList.add('open'); pvType(script.start); };
 
 applyView();
 load();

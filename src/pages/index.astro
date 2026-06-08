@@ -16,7 +16,12 @@ import { url } from '../lib/url';
     <div class="intro-stage__bg">
       <ShaderBackground client:only="react" />
     </div>
-    <VisualNovel client:load script={intro} skipHref={url('lugares')} />
+    <VisualNovel
+      client:load
+      script={intro}
+      skipHref={url('lugares')}
+      collectKey={import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '96869b57-121c-4693-b919-1be2f990ca2f'}
+    />
   </div>
 </BaseLayout>
 

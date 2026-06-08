@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Script, Step } from '../lib/narrative';
+import type { Flags, Option, Script, Step } from '../lib/narrative';
+import { resolveNext, resolveText, visibleOptions } from '../lib/narrative';
 import './VisualNovel.css';
 
 /* Pausa inicial (ms) antes de que aparezca el primer texto: unos segundos
@@ -16,14 +17,20 @@ type Props = {
   skipHref: string;
   /* Velocidad de tipeo en ms por caracter. */
   typeSpeed?: number;
+  /* Access key de Web3Forms: si está, al terminar la intro se envían las flags
+     (nombre + elecciones). Si no, no se recolecta nada. */
+  collectKey?: string;
 };
 
 export default function VisualNovel({
   script,
   skipHref,
   typeSpeed = 32,
+  collectKey,
 }: Props) {
   const [currentId, setCurrentId] = useState(script.start);
+  const [flags, setFlags] = useState<Flags>({});
+  const [draft, setDraft] = useState('');
   const [shown, setShown] = useState('');
   const [done, setDone] = useState(false);
   /* ready=true recién READY_DELAY después de done: hasta entonces el step
@@ -31,9 +38,22 @@ export default function VisualNovel({
   const [ready, setReady] = useState(false);
   /* Sólo el primer step espera START_DELAY; los siguientes arrancan ya. */
   const firstRun = useRef(true);
+  /* La recolección se envía una sola vez por partida. */
+  const sent = useRef(false);
 
   const step: Step | undefined = script.steps[currentId];
-  const text = step?.text ?? '';
+  /* Flags efectivas en este step: incluyen ya las que el propio step setea al
+     entrar (para que su texto variable las pueda usar sin un re-render). */
+  const liveFlags: Flags = step?.set ? { ...flags, ...step.set } : flags;
+  const text = resolveText(step?.text, liveFlags);
+  const options: Option[] = step ? visibleOptions(step, liveFlags) : [];
+
+  /* Aplica las flags de entrada del step y resetea el campo de texto. */
+  useEffect(() => {
+    setDraft('');
+    if (step?.set) setFlags((f) => ({ ...f, ...step.set }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentId]);
   useEffect(() => {
     setShown('');
     setDone(false);
@@ -81,9 +101,32 @@ export default function VisualNovel({
     return () => window.clearTimeout(id);
   }, [done]);
 
-  const goTo = (next: string | null | undefined) => {
+  /* Envía nombre + flags a Web3Forms al terminar (una vez, fire-and-forget con
+     keepalive para que sobreviva a la navegación). */
+  const collect = (finalFlags: Flags) => {
+    if (sent.current || !collectKey) return;
+    sent.current = true;
+    if (Object.keys(finalFlags).length === 0) return;
+    try {
+      fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: collectKey,
+          subject: 'Vividice — nuevo jugador',
+          ...finalFlags,
+        }),
+      }).catch(() => {});
+    } catch {
+      /* nunca bloquea ni rompe la intro */
+    }
+  };
+
+  const goTo = (next: string | null | undefined, withFlags: Flags = liveFlags) => {
     if (!next || !script.steps[next]) {
-      /* Sin destino válido = fin de la novela. */
+      /* Sin destino válido = fin de la novela: recolectamos y salimos. */
+      collect(withFlags);
       window.location.href = skipHref;
       return;
     }
@@ -91,8 +134,29 @@ export default function VisualNovel({
   };
   const handleAdvance = () => {
     if (!ready) return;
-    if (step?.options?.length) return;
-    goTo(step?.next);
+    if (options.length || step?.input) return;
+    goTo(resolveNext(step?.next, liveFlags));
+  };
+  const choose = (opt: Option) => {
+    /* Las flags de la opción deben estar disponibles para resolver el destino
+       convergente, así que las calculamos antes de navegar. */
+    const nf = opt.set ? { ...liveFlags, ...opt.set } : liveFlags;
+    if (opt.set) setFlags(nf);
+    /* Si la opción define `next` propio, bifurca (vacío = fin); si no, converge
+       al `next` del step. */
+    const dest = 'next' in opt ? opt.next || null : resolveNext(step?.next, nf);
+    goTo(dest, nf);
+  };
+
+  const input = step?.input;
+  const min = input?.min ?? 1;
+  const max = input?.max ?? 20;
+  const draftOk = draft.trim().length >= min && draft.length <= max;
+  const submitInput = () => {
+    if (!input || !draftOk) return;
+    const nf = { ...liveFlags, [input.flag]: draft.trim() };
+    setFlags(nf);
+    goTo(resolveNext(step?.next, nf), nf);
   };
 
   if (!step) {
@@ -101,7 +165,7 @@ export default function VisualNovel({
     return null;
   }
 
-  const hasOptions = Boolean(step.options?.length);
+  const hasOptions = options.length > 0;
 
   return (
     <section
@@ -129,14 +193,14 @@ export default function VisualNovel({
 
         {ready && hasOptions && (
           <ul className="vn__options">
-            {step.options!.map((opt, i) => (
+            {options.map((opt, i) => (
               <li key={i}>
                 <button
                   type="button"
                   className="vn__option"
                   onClick={(e) => {
                     e.stopPropagation();
-                    goTo(opt.next);
+                    choose(opt);
                   }}
                 >
                   {opt.label}
@@ -146,7 +210,36 @@ export default function VisualNovel({
           </ul>
         )}
 
-        {ready && !hasOptions && (
+        {ready && input && (
+          <form
+            className="vn__input"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitInput();
+            }}
+          >
+            <input
+              className="vn__field"
+              type="text"
+              autoFocus
+              maxLength={max}
+              value={draft}
+              placeholder={input.placeholder ?? ''}
+              onChange={(e) => setDraft(e.target.value)}
+              aria-label="Tu respuesta"
+            />
+            <button
+              type="submit"
+              className="vn__option vn__submit"
+              disabled={!draftOk}
+            >
+              →
+            </button>
+          </form>
+        )}
+
+        {ready && !hasOptions && !input && (
           <p className="vn__hint" aria-hidden="true">
             ↓
           </p>
