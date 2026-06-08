@@ -44,7 +44,7 @@ const lugares = defineCollection({
       z.enum([
         'continente', 'region',
         'reino', 'imperio',
-        'ciudad', 'pueblo',
+        'ciudad', 'pueblo', 'barrio',
         'edificio', 'estructura', 'ruina',
         'bosque', 'montana', 'rio',
         'otro',
