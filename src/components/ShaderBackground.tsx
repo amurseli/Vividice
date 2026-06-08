@@ -103,10 +103,10 @@ const FRAGMENT_SRC = `
       
     float f = fbm(wuv + 2.8 * r);
     
-    /* Solo rojo sobre negro puro. El campo de noise (f) y el warp (q.x)
-       definen dónde "fluye" el rojo. */
-    float redAmt = smoothstep(0.20, 0.55, f) * 0.75
-                 + smoothstep(0.25, 0.48, q.x) * 0.40;
+    /* Solo rojo sobre negro puro. Umbral alto y angosto: el rojo aparece
+       únicamente en las crestas del campo de noise (venas finas que fluyen),
+       dejando la mayor parte de la pantalla en negro. */
+    float redAmt = smoothstep(0.58, 0.78, f);
 
     vec3 color = mix(BG, RED, redAmt);
 
