@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Flags, Option, Script, Step } from '../lib/narrative';
-import { resolveNext, resolveText, visibleOptions } from '../lib/narrative';
+import { parseRich, resolveNext, resolveText, visibleOptions } from '../lib/narrative';
 import './VisualNovel.css';
 
 /* Pausa inicial (ms) antes de que aparezca el primer texto: unos segundos
@@ -54,7 +54,7 @@ export default function VisualNovel({
   const [currentId, setCurrentId] = useState(script.start);
   const [flags, setFlags] = useState<Flags>({});
   const [draft, setDraft] = useState('');
-  const [shown, setShown] = useState('');
+  const [revealed, setRevealed] = useState(0);
   const [done, setDone] = useState(false);
   /* ready=true recién READY_DELAY después de done: hasta entonces el step
      es ineskippeable (no avanza, no muestra opciones ni flecha). */
@@ -72,7 +72,7 @@ export default function VisualNovel({
   const [renderedId, setRenderedId] = useState(currentId);
   if (renderedId !== currentId) {
     setRenderedId(currentId);
-    setShown('');
+    setRevealed(0);
     setDone(false);
     setReady(false);
     setDraft('');
@@ -83,6 +83,8 @@ export default function VisualNovel({
      entrar (para que su texto variable las pueda usar sin un re-render). */
   const liveFlags: Flags = step?.set ? { ...flags, ...step.set } : flags;
   const text = resolveText(step?.text, liveFlags);
+  /* Texto parseado a caracteres con estilo + pausas (efectos inline). */
+  const rich = useMemo(() => parseRich(text), [text]);
   const options: Option[] = step ? visibleOptions(step, liveFlags) : [];
   /* Las opciones se agrupan de a 2 por fila (3 → 2 arriba + 1 abajo). */
   const optionRows: Option[][] = [];
@@ -95,10 +97,11 @@ export default function VisualNovel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId]);
   useEffect(() => {
-    setShown('');
+    setRevealed(0);
     setDone(false);
     setReady(false);
-    if (!text) {
+    const total = rich.chars.length;
+    if (total === 0) {
       setDone(true);
       return;
     }
@@ -106,7 +109,7 @@ export default function VisualNovel({
       '(prefers-reduced-motion: reduce)',
     ).matches;
     if (reduced) {
-      setShown(text);
+      setRevealed(total);
       setDone(true);
       return;
     }
@@ -114,24 +117,31 @@ export default function VisualNovel({
     const delay = firstRun.current ? START_DELAY : 0;
     firstRun.current = false;
 
-    let interval = 0;
-    const startTimer = window.setTimeout(() => {
-      let i = 0;
-      interval = window.setInterval(() => {
-        i += 1;
-        setShown(text.slice(0, i));
-        if (i >= text.length) {
-          window.clearInterval(interval);
-          setDone(true);
-        }
-      }, typeSpeed);
-    }, delay);
+    /* Revela un caracter por tick; si hay una pausa registrada en esa
+       posición, la suma antes del siguiente. */
+    let n = 0;
+    let timer = 0;
+    const step = () => {
+      n += 1;
+      setRevealed(n);
+      if (n >= total) {
+        setDone(true);
+        return;
+      }
+      timer = window.setTimeout(step, typeSpeed + (rich.pauses[n] ?? 0));
+    };
+    const startTimer = window.setTimeout(
+      () => {
+        timer = window.setTimeout(step, typeSpeed + (rich.pauses[0] ?? 0));
+      },
+      delay,
+    );
 
     return () => {
       window.clearTimeout(startTimer);
-      window.clearInterval(interval);
+      window.clearTimeout(timer);
     };
-  }, [currentId, text, typeSpeed]);
+  }, [currentId, rich, typeSpeed]);
 
   /* Una vez que el texto terminó (done), el step sigue ineskippeable hasta
      que pase READY_DELAY. */
@@ -229,11 +239,29 @@ export default function VisualNovel({
 
       <div className="vn__panel">
         <p className={`vn__text${done && hasOptions ? ' vn__text--lift' : ''}`}>
-          {shown.split('').map((ch, i) => (
-            <span key={i} className="vn__char">
-              {ch}
-            </span>
-          ))}
+          {rich.chars.slice(0, revealed).map((c, i) =>
+            c.wave ? (
+              <span
+                key={i}
+                className="vn__owave"
+                style={{
+                  color: c.color ?? undefined,
+                  animationDelay: `${i * -0.09}s`,
+                  animationDuration: '3.2s',
+                }}
+              >
+                {c.ch === ' ' ? ' ' : c.ch}
+              </span>
+            ) : (
+              <span
+                key={i}
+                className="vn__char"
+                style={c.color ? { color: c.color } : undefined}
+              >
+                {c.ch}
+              </span>
+            ),
+          )}
         </p>
 
         <div className="vn__after">

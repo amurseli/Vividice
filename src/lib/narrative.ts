@@ -75,6 +75,64 @@ export function interpolate(text: string, flags: Flags): string {
   return text.replace(/\{(\w+)\}/g, (m, name) => (name in flags ? flags[name] : m));
 }
 
+/* ── Texto enriquecido (efectos inline) ──────────────────────────────────
+   Sintaxis:
+     {{600}}                 pausa de 600ms en el tipeo (alias: {{beat}}, {{pause}})
+     [[wave accent]]X[[/]]   X con onda y color; tokens = efectos + un color
+   Colores: nombres de paleta o hex (#rrggbb). */
+const RICH_COLORS: Record<string, string> = {
+  accent: 'var(--color-accent)',
+  cyan: 'var(--color-accent-2)',
+  muted: 'var(--color-text-muted)',
+  text: 'var(--color-text)',
+};
+const PAUSE_ALIASES: Record<string, number> = { beat: 400, pause: 900 };
+
+function richColor(tok: string): string | null {
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tok)) return tok;
+  return RICH_COLORS[tok] ?? null;
+}
+
+export type RichChar = { ch: string; wave: boolean; color: string | null };
+/* `chars`: caracteres visibles con su estilo. `pauses[n]`: ms a esperar
+   después de revelar n caracteres. */
+export type Rich = { chars: RichChar[]; pauses: Record<number, number> };
+
+export function parseRich(raw: string): Rich {
+  const chars: RichChar[] = [];
+  const pauses: Record<number, number> = {};
+  let wave = false;
+  let color: string | null = null;
+  let i = 0;
+  while (i < raw.length) {
+    if (raw.startsWith('[[/]]', i)) { wave = false; color = null; i += 5; continue; }
+    if (raw.startsWith('[[', i)) {
+      const end = raw.indexOf(']]', i + 2);
+      if (end !== -1) {
+        for (const t of raw.slice(i + 2, end).trim().split(/\s+/)) {
+          if (t === 'wave') wave = true;
+          else { const c = richColor(t); if (c) color = c; }
+        }
+        i = end + 2;
+        continue;
+      }
+    }
+    if (raw.startsWith('{{', i)) {
+      const end = raw.indexOf('}}', i + 2);
+      if (end !== -1) {
+        const body = raw.slice(i + 2, end).trim();
+        const ms = PAUSE_ALIASES[body] ?? parseInt(body, 10);
+        if (ms > 0) pauses[chars.length] = (pauses[chars.length] ?? 0) + ms;
+        i = end + 2;
+        continue;
+      }
+    }
+    chars.push({ ch: raw[i], wave, color });
+    i += 1;
+  }
+  return { chars, pauses };
+}
+
 /* Resuelve el texto efectivo del step según las flags (variante + interpolación). */
 export function resolveText(text: Text | undefined, flags: Flags): string {
   let out = '';

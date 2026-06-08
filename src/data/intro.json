@@ -2,23 +2,23 @@
   "start": "1",
   "steps": {
     "1": {
-      "text": "Oh.. ¡Hola!",
+      "text": "Oh.{{600}}.{{600}}.{{600}} ¡Hola!",
       "next": "2"
     },
     "2": {
-      "text": "Han pasado... años desde la última vez que llovió así, ¿Verdad?",
+      "text": "Han pasado... {{600}}años desde la última vez que [[wave]]llovió[[/]] así, ¿Verdad?",
       "next": "3"
     },
     "3": {
-      "text": "Poder sentarse a plasmar lo que una pluma entintada pide es una sensación maravillosa. inigualable.",
+      "text": "Poder sentarse a plasmar lo que una pluma entintada pide es una sensación maravillosa.{{600}} inigualable.",
       "next": "4"
     },
     "4": {
-      "text": "Un café caliente y el ruido de la lluvia. El olor herbal inundando el ambiente...",
+      "text": "Un café caliente y el ruido de la lluvia. {{600}}El olor herbal inundando el ambiente...",
       "next": "5"
     },
     "5": {
-      "text": "¡Hey! Seguro a vos también te gustan las historias.\n\n¿Qué es lo que más te gusta de ellas?",
+      "text": "¡Hey! {{600}}Seguro a vos también te gustan las historias.\n\n¿Qué es lo que más te gusta de ellas?",
       "options": [
         {
           "label": "Sus Personajes",
@@ -54,7 +54,7 @@
       "next": "7"
     },
     "7": {
-      "text": "Para mí... lo más importante de cuaqluier historia, o incluso de cualquier medio, ese su capacidad de cambiar el mundo.",
+      "text": "Para mí...{{600}} lo más importante de cuaqluier historia, o incluso de cualquier medio, ese su capacidad de cambiar el mundo.",
       "next": "8"
     },
     "8": {
@@ -66,21 +66,24 @@
       "next": "10"
     },
     "10": {
-      "text": "Creo que ese es el propósito de una historia. Su legado. ",
+      "text": "Creo que ese es el propósito de una historia. Su {{600}}[[wave accent]]l{{200}}e{{200}}g{{200}}a{{200}}d{{200}}o[[/]]. ",
       "next": "11"
     },
     "11": {
-      "text": "Quizás \"propósito\" no sea la palabra indicada, pero dejámelo pasar, ¿Dale? Ja ja ja.",
+      "text": "Quizás \"propósito\" no sea la palabra indicada, pero dejámelo pasar, ¿Dale? [[wave]]Ja ja ja[[/]].",
       "next": "12"
     },
     "12": {
-      "text": "En Fin...\n¡Por Haddar! ¿Que modales los míos?\nOlvidé preguntarte tu nombre",
+      "text": "En Fin...\n¡Por Haddar! ¿Que modales son estos?\nOlvidé preguntarte tu nombre",
       "input": {
         "flag": "nombre",
         "max": 20,
         "placeholder": "Tu nombre..."
       },
-      "next": ""
+      "next": "13"
+    },
+    "13": {
+      "text": "[[wave accent]]{nombre}[[/]]"
     }
   }
 }

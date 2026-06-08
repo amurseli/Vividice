@@ -103,6 +103,10 @@
   .del { color: var(--muted); border-color: transparent; background: transparent; }
   .del:hover { color: var(--accent); }
   .hint { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 10px; }
+  .guide { font-style: normal; line-height: 1.7; }
+  .guide code { font-family: ui-monospace, monospace; font-size: 11px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+  .guide .dim { opacity: .6; }
   .toggle { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; text-transform: none; letter-spacing: 0; cursor: pointer; }
   .toggle input { width: auto; margin: 0; }
   .kvrow { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
@@ -119,6 +123,8 @@
   .pv__text { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 2.2rem); line-height: 1.4; min-height: 1.4em; margin: 0; }
   .pv__char { animation: fadein .5s ease both; }
   @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+  .pv__wave { display: inline-block; animation: pv-wave 3.2s ease-in-out infinite; }
+  @keyframes pv-wave { 0%,100% { transform: translateY(0.14em) } 50% { transform: translateY(-0.14em) } }
   .pv__opts { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-direction: column; gap: 12px; align-items: center; }
   .pv__opts button { min-width: 16rem; padding: 12px 24px; }
   .pv__arrow { margin-top: 28px; font-size: 1.6rem; color: var(--muted); opacity: .5; }
@@ -237,13 +243,14 @@ function outCount(step) {
   if (k === 'choice') return isBranchingChoice(step) ? step.options.length : 1;
   return 0;
 }
+function stripRich(s) { return (s || '').replace(/\[\[\/?.*?\]\]/g, '').replace(/\{\{.*?\}\}/g, ''); }
 function nodeTextPreview(step) {
   const t = step.text;
   if (t && typeof t === 'object') {
     const first = Object.values(t.cases || {}).find(Boolean) || t.default;
-    return '⌥ ' + (first || '(texto variable)');
+    return '⌥ ' + (stripRich(first) || '(texto variable)');
   }
-  return t || '(sin texto)';
+  return stripRich(t) || '(sin texto)';
 }
 function kindLabel(step) {
   const k = kindOf(step);
@@ -760,7 +767,14 @@ function renderInspector() {
     inspector.append(def);
   }
 
-  inspector.append(el('div', { className: 'hint', textContent: 'Tip: escribí {flag} en cualquier texto para insertar el valor actual de esa flag.' }));
+  const guide = el('div', { className: 'hint guide' });
+  guide.innerHTML =
+    'Efectos en el texto:'
+    + '<br>· flag: <code>{nombre}</code> inserta el valor'
+    + '<br>· pausa: <code>{{600}}</code> ms <span class="dim">(o {{beat}}, {{pause}})</span>'
+    + '<br>· estilo: <code>[[wave accent]]texto[[/]]</code>'
+    + '<br>· efectos: <code>wave</code> · colores: <code>accent</code>, <code>cyan</code>, <code>muted</code>, o <code>#hex</code>';
+  inspector.append(guide);
 
   inspector.append(el('span', { className: 'lbl', textContent: 'Flags al entrar' }));
   if (!step.set || Object.keys(step.set).length === 0) {
@@ -951,9 +965,50 @@ document.addEventListener('keydown', (e) => {
 });
 
 const overlay = $('#overlay');
-let pv = { id: null, full: '', typing: false, timer: 0, flags: {} };
-function pvStop() { clearInterval(pv.timer); pv.typing = false; }
+let pv = { id: null, rich: { chars: [], pauses: {} }, typing: false, timer: 0, flags: {} };
+function pvStop() { clearTimeout(pv.timer); pv.typing = false; }
 function pvClose() { pvStop(); overlay.classList.remove('open'); }
+
+/* Parser de texto enriquecido (espejo de narrative.ts): {{ms}} y [[wave color]]…[[/]]. */
+const PV_COLORS = { accent: 'var(--accent)', cyan: 'var(--accent-2)', muted: 'var(--muted)', text: 'var(--text)' };
+const PV_PAUSE = { beat: 400, pause: 900 };
+function pvColor(tok) { return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(tok) ? tok : (PV_COLORS[tok] || null); }
+function parseRichEd(raw) {
+  const chars = [], pauses = {};
+  let wave = false, color = null, i = 0;
+  while (i < raw.length) {
+    if (raw.startsWith('[[/]]', i)) { wave = false; color = null; i += 5; continue; }
+    if (raw.startsWith('[[', i)) {
+      const end = raw.indexOf(']]', i + 2);
+      if (end !== -1) {
+        for (const t of raw.slice(i + 2, end).trim().split(/\s+/)) {
+          if (t === 'wave') wave = true; else { const c = pvColor(t); if (c) color = c; }
+        }
+        i = end + 2; continue;
+      }
+    }
+    if (raw.startsWith('{{', i)) {
+      const end = raw.indexOf('}}', i + 2);
+      if (end !== -1) {
+        const body = raw.slice(i + 2, end).trim();
+        const ms = PV_PAUSE[body] ?? parseInt(body, 10);
+        if (ms > 0) pauses[chars.length] = (pauses[chars.length] || 0) + ms;
+        i = end + 2; continue;
+      }
+    }
+    chars.push({ ch: raw[i], wave, color }); i += 1;
+  }
+  return { chars, pauses };
+}
+function pvAppendChar(c, idx) {
+  let style = c.color ? 'color:' + c.color + ';' : '';
+  if (c.wave) style += `animation-delay:${idx * -0.09}s;animation-duration:3.2s;`;
+  $('#pvText').append(el('span', {
+    className: c.wave ? 'pv__char pv__wave' : 'pv__char',
+    style,
+    textContent: c.ch === ' ' ? ' ' : c.ch,
+  }));
+}
 function pvMatches(cond) {
   if (!cond) return true;
   return Object.entries(cond).every(([k, v]) => String(pv.flags[k] ?? '') === String(v));
@@ -980,18 +1035,23 @@ function pvType(id) {
   const step = script.steps[id];
   if (!step) return pvClose();
   if (step.set) Object.assign(pv.flags, step.set);
-  pv.id = id; pv.full = pvText(step);
+  pv.id = id; pv.rich = parseRichEd(pvText(step));
   $('#pvText').innerHTML = ''; $('#pvAfter').innerHTML = '';
-  let i = 0; pv.typing = true;
-  pv.timer = setInterval(() => {
-    if (i >= pv.full.length) return pvDone(id);
-    $('#pvText').append(el('span', { className: 'pv__char', textContent: pv.full[i] })); i++;
-  }, 32);
+  pv.typing = true;
+  const total = pv.rich.chars.length;
+  if (total === 0) { pv.typing = false; return pvDone(id); }
+  let n = 0;
+  const tick = () => {
+    pvAppendChar(pv.rich.chars[n], n); n += 1;
+    if (n >= total) { pv.typing = false; return pvDone(id); }
+    pv.timer = setTimeout(tick, 32 + (pv.rich.pauses[n] || 0));
+  };
+  pv.timer = setTimeout(tick, 32 + (pv.rich.pauses[0] || 0));
 }
 function pvComplete() {
   pvStop();
   $('#pvText').innerHTML = '';
-  for (const ch of pv.full) $('#pvText').append(el('span', { className: 'pv__char', textContent: ch }));
+  pv.rich.chars.forEach((c, idx) => pvAppendChar(c, idx));
   pvDone(pv.id);
 }
 function pvDone(id) {
