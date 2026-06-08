@@ -24,12 +24,16 @@ type Props = {
   /* transparentNav=true: navbar sin fondo + overlay (sale del flujo) para
      que el contenido fullscreen detrás se vea. */
   transparentNav?: boolean;
+  /* hideNav=true: no renderiza la navbar (ej: la intro tipo novela visual,
+     que sólo expone su propio botón de skip). */
+  hideNav?: boolean;
 };
 const {
   title,
   width = 'narrow',
   hideFooter = false,
   transparentNav = false,
+  hideNav = false,
 } = Astro.props;
 
 /* Astro.url.pathname es la URL actual ya con el base aplicado.
@@ -53,12 +57,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       client:idle (cuando el browser está ocioso), client:only="react"
       (solo en cliente, no SSR).
     */}
-    <Navbar
-      client:load
-      currentPath={currentPath}
-      base={base}
-      transparent={transparentNav}
-    />
+    {!hideNav && (
+      <Navbar
+        client:load
+        currentPath={currentPath}
+        base={base}
+        transparent={transparentNav}
+      />
+    )}
 
     <main class:list={['content', `content--${width}`]}>
       <slot />

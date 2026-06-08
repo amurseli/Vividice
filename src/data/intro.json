@@ -1,0 +1,31 @@
+{
+  "start": "1",
+  "steps": {
+    "1": {
+      "text": "Abrís los ojos. El aire sabe a roca húmeda y a humo lejano.",
+      "next": "2"
+    },
+    "2": {
+      "text": "Muy abajo, en la oscuridad de los Niveles Inferiores, alguien pronuncia tu nombre.",
+      "next": "3"
+    },
+    "3": {
+      "text": "¿Respondés?",
+      "options": [
+        { "label": "Responder", "next": "4a" },
+        { "label": "Quedarte en silencio", "next": "4b" }
+      ]
+    },
+    "4a": {
+      "text": "Tu voz se pierde entre las columnas. Algo, allá abajo, se mueve.",
+      "next": "5"
+    },
+    "4b": {
+      "text": "El silencio se estira. La voz no vuelve a llamar. Estás solo.",
+      "next": "5"
+    },
+    "5": {
+      "text": "Bienvenido a Vivídice."
+    }
+  }
+}

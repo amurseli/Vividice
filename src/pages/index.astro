@@ -1,30 +1,35 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ShaderBackground from '../components/ShaderBackground.tsx';
+import VisualNovel from '../components/VisualNovel.tsx';
+import intro from '../data/intro.json';
+import { url } from '../lib/url';
 ---
 
-<BaseLayout title="Inicio" width="bleed" hideFooter transparentNav>
-  <div class="shader-stage">
-    <ShaderBackground client:only="react" />
+<BaseLayout title="Inicio" width="bleed" hideFooter hideNav>
+  {/*
+    Intro tipo novela visual. El shader (negro + flujo rojo) es el fondo;
+    VisualNovel se monta encima y maneja el guion (src/data/intro.json),
+    el typewriter y el botón de skip. Al terminar o saltear -> /lugares.
+  */}
+  <div class="intro-stage">
+    <div class="intro-stage__bg">
+      <ShaderBackground client:only="react" />
+    </div>
+    <VisualNovel client:load script={intro} skipHref={url('lugares')} />
   </div>
 </BaseLayout>
 
 <style>
-  /*
-    bleed + hideFooter: el body es flex column → navbar arriba, .content
-    rellena el resto del viewport (flex: 1). Como no hay footer, el shader
-    ocupa todo el espacio entre el bottom del navbar y el bottom de la pantalla.
-
-    El min-height asegura que aún si por algo el flex no estira el padre,
-    el canvas tenga altura razonable.
-  */
-  .shader-stage {
+  .intro-stage {
+    position: relative;
     width: 100%;
-    /* 100dvh = dynamic viewport height: en mobile se ajusta cuando aparece
-       o desaparece la barra del browser. En desktop equivale a 100vh.
-       Antes usaba "100% + min-height: calc(100vh - 5rem)" para descontar la
-       navbar, pero como ahora la navbar es absolute (transparentNav) no resta
-       espacio y dejaba 5rem de body asomando abajo. */
     height: 100dvh;
+    overflow: hidden;
+  }
+  .intro-stage__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
   }
 </style>

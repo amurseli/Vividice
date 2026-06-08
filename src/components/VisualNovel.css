@@ -1,0 +1,148 @@
+/*
+  Estilos de la novela visual. Clases namespaced con `vn__`.
+  Todos los colores salen de las variables de global.css (paleta).
+  La sección se posiciona absolute para cubrir su contenedor (.intro-stage
+  en index.astro, que es position: relative).
+*/
+.vn {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(var(--space-5), 6vw, 6rem);
+  cursor: pointer;
+  /* El texto se asienta sobre el shader oscuro; un velo radial extra
+     mantiene legible el centro sin tapar el flujo de los bordes. */
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--color-bg) 55%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+.vn__panel {
+  max-width: 60ch;
+  width: 100%;
+  text-align: center;
+}
+
+.vn__text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+  line-height: 1.4;
+  color: var(--color-text);
+  /* min-height para que las opciones no salten cuando el texto crece. */
+  min-height: 1.4em;
+}
+
+/* Cada letra entra con un fade-in al montarse. Inline (no inline-block)
+   para no romper el wrapping de palabras. */
+.vn__char {
+  animation: vn-char-in 500ms ease both;
+}
+
+@keyframes vn-char-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vn__options {
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.vn__option {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: var(--space-3) var(--space-5);
+  min-width: 16rem;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease,
+    background 150ms ease, transform 150ms ease;
+}
+
+.vn__option:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+/* Flecha hacia abajo para continuar: tenue, aparece cuando el texto
+   termina y rebota suavemente. */
+.vn__hint {
+  margin: var(--space-5) 0 0;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  animation: vn-fade-in 600ms ease both, vn-bounce 1.6s ease-in-out 600ms infinite;
+}
+
+@keyframes vn-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+@keyframes vn-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+/*
+  Botón de skip: flechita en la esquina superior derecha. Casi invisible
+  en reposo, se revela al pasar el mouse. Salta toda la intro -> skipHref.
+*/
+.vn__skip {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-5);
+  z-index: 2;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  opacity: 0.18;
+  transition: opacity 200ms ease, color 200ms ease, transform 200ms ease;
+  cursor: pointer;
+}
+
+.vn__skip:hover {
+  opacity: 1;
+  color: var(--color-accent);
+  transform: translateX(3px);
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vn__char {
+    animation: none;
+  }
+  .vn__hint {
+    animation: none;
+  }
+}
