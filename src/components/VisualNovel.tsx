@@ -11,6 +11,29 @@ const START_DELAY = 3000;
    terminó de aparecer: no se puede avanzar ni elegir hasta que pase. */
 const READY_DELAY = 1000;
 
+/* Texto donde cada letra oscila en una onda senoidal lenta. `dur` cambia la
+   velocidad y `phase` desfasa la onda (para desincronizar varias palabras).
+   Reutilizable: opciones, el nombre y lo que venga. */
+function WavyText({ text, dur = 3.2, phase = 0 }: { text: string; dur?: number; phase?: number }) {
+  return (
+    <>
+      {text.split('').map((ch, j) => (
+        <span
+          key={j}
+          className="vn__owave"
+          aria-hidden="true"
+          style={{
+            animationDuration: `${dur}s`,
+            animationDelay: `${(phase + j * 0.09) * -1}s`,
+          }}
+        >
+          {ch === ' ' ? ' ' : ch}
+        </span>
+      ))}
+    </>
+  );
+}
+
 type Props = {
   script: Script;
   /* Destino del skip y del final de la novela (ej: /lugares). */
@@ -40,6 +63,8 @@ export default function VisualNovel({
   const firstRun = useRef(true);
   /* La recolección se envía una sola vez por partida. */
   const sent = useRef(false);
+  /* Input oculto que captura el tipeo del nombre. */
+  const inputRef = useRef<HTMLInputElement>(null);
 
   /* Al cambiar de step, reseteamos en el render (no en un efecto) para que el
      frame nuevo nunca herede el `ready` del step anterior: sin ese reset, un
@@ -59,6 +84,9 @@ export default function VisualNovel({
   const liveFlags: Flags = step?.set ? { ...flags, ...step.set } : flags;
   const text = resolveText(step?.text, liveFlags);
   const options: Option[] = step ? visibleOptions(step, liveFlags) : [];
+  /* Las opciones se agrupan de a 2 por fila (3 → 2 arriba + 1 abajo). */
+  const optionRows: Option[][] = [];
+  for (let r = 0; r < options.length; r += 2) optionRows.push(options.slice(r, r + 2));
 
   /* Aplica las flags de entrada del step y resetea el campo de texto. */
   useEffect(() => {
@@ -200,7 +228,7 @@ export default function VisualNovel({
       </a>
 
       <div className="vn__panel">
-        <p className="vn__text">
+        <p className={`vn__text${done && hasOptions ? ' vn__text--lift' : ''}`}>
           {shown.split('').map((ch, i) => (
             <span key={i} className="vn__char">
               {ch}
@@ -210,50 +238,64 @@ export default function VisualNovel({
 
         <div className="vn__after">
           {ready && hasOptions && (
-            <ul className="vn__options">
-              {options.map((opt, i) => (
-                <li key={i}>
-                  <button
-                    type="button"
-                    className="vn__option"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      choose(opt);
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                </li>
+            <div className="vn__options">
+              {optionRows.map((row, r) => (
+                <div className="vn__row" key={r} data-single={row.length === 1}>
+                  {row.map((opt, c) => {
+                    const i = r * 2 + c;
+                    return (
+                      <button
+                        type="button"
+                        key={c}
+                        className="vn__option"
+                        aria-label={opt.label}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          choose(opt);
+                        }}
+                      >
+                        <WavyText text={opt.label} dur={2.8 + i * 0.7} phase={i * 0.8} />
+                      </button>
+                    );
+                  })}
+                </div>
               ))}
-            </ul>
+            </div>
           )}
 
           {ready && input && (
             <form
-              className="vn__input"
-              onClick={(e) => e.stopPropagation()}
+              className="vn__namefill"
+              onClick={(e) => {
+                e.stopPropagation();
+                inputRef.current?.focus();
+              }}
               onSubmit={(e) => {
                 e.preventDefault();
                 submitInput();
               }}
             >
+              <span className="vn__nameview">
+                {draft ? (
+                  <WavyText text={draft} />
+                ) : (
+                  <span className="vn__nameph" aria-hidden="true">
+                    {input.placeholder ?? '…'}
+                  </span>
+                )}
+                <span className="vn__caret" aria-hidden="true" />
+              </span>
+              {/* Input real, oculto: captura el tipeo y el teclado en mobile. */}
               <input
-                className="vn__field"
+                ref={inputRef}
+                className="vn__nameinput"
                 type="text"
                 autoFocus
                 maxLength={max}
                 value={draft}
-                placeholder={input.placeholder ?? ''}
                 onChange={(e) => setDraft(e.target.value)}
-                aria-label="Tu respuesta"
+                aria-label="Escribí tu nombre"
               />
-              <button
-                type="submit"
-                className="vn__option vn__submit"
-                disabled={!draftOk}
-              >
-                →
-              </button>
             </form>
           )}
 
