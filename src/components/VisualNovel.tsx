@@ -41,6 +41,18 @@ export default function VisualNovel({
   /* La recolección se envía una sola vez por partida. */
   const sent = useRef(false);
 
+  /* Al cambiar de step, reseteamos en el render (no en un efecto) para que el
+     frame nuevo nunca herede el `ready` del step anterior: sin ese reset, un
+     step con opciones las "flashea" un instante antes de tipear el texto. */
+  const [renderedId, setRenderedId] = useState(currentId);
+  if (renderedId !== currentId) {
+    setRenderedId(currentId);
+    setShown('');
+    setDone(false);
+    setReady(false);
+    setDraft('');
+  }
+
   const step: Step | undefined = script.steps[currentId];
   /* Flags efectivas en este step: incluyen ya las que el propio step setea al
      entrar (para que su texto variable las pueda usar sin un re-render). */
@@ -107,6 +119,10 @@ export default function VisualNovel({
     if (sent.current || !collectKey) return;
     sent.current = true;
     if (Object.keys(finalFlags).length === 0) return;
+    /* Resumen legible de todas las elecciones (además de cada flag por separado). */
+    const resumen = Object.entries(finalFlags)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(' · ');
     try {
       fetch('https://api.web3forms.com/submit', {
         method: 'POST',
@@ -114,7 +130,8 @@ export default function VisualNovel({
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           access_key: collectKey,
-          subject: 'Vividice — nuevo jugador',
+          subject: `Vividice — ${finalFlags.nombre ?? 'jugador'}`,
+          resumen,
           ...finalFlags,
         }),
       }).catch(() => {});
@@ -191,59 +208,61 @@ export default function VisualNovel({
           ))}
         </p>
 
-        {ready && hasOptions && (
-          <ul className="vn__options">
-            {options.map((opt, i) => (
-              <li key={i}>
-                <button
-                  type="button"
-                  className="vn__option"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    choose(opt);
-                  }}
-                >
-                  {opt.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="vn__after">
+          {ready && hasOptions && (
+            <ul className="vn__options">
+              {options.map((opt, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    className="vn__option"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      choose(opt);
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
-        {ready && input && (
-          <form
-            className="vn__input"
-            onClick={(e) => e.stopPropagation()}
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitInput();
-            }}
-          >
-            <input
-              className="vn__field"
-              type="text"
-              autoFocus
-              maxLength={max}
-              value={draft}
-              placeholder={input.placeholder ?? ''}
-              onChange={(e) => setDraft(e.target.value)}
-              aria-label="Tu respuesta"
-            />
-            <button
-              type="submit"
-              className="vn__option vn__submit"
-              disabled={!draftOk}
+          {ready && input && (
+            <form
+              className="vn__input"
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitInput();
+              }}
             >
-              →
-            </button>
-          </form>
-        )}
+              <input
+                className="vn__field"
+                type="text"
+                autoFocus
+                maxLength={max}
+                value={draft}
+                placeholder={input.placeholder ?? ''}
+                onChange={(e) => setDraft(e.target.value)}
+                aria-label="Tu respuesta"
+              />
+              <button
+                type="submit"
+                className="vn__option vn__submit"
+                disabled={!draftOk}
+              >
+                →
+              </button>
+            </form>
+          )}
 
-        {ready && !hasOptions && !input && (
-          <p className="vn__hint" aria-hidden="true">
-            ↓
-          </p>
-        )}
+          {ready && !hasOptions && !input && (
+            <p className="vn__hint" aria-hidden="true">
+              ↓
+            </p>
+          )}
+        </div>
       </div>
     </section>
   );
