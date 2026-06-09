@@ -80,10 +80,186 @@
         "max": 20,
         "placeholder": "Tu nombre..."
       },
-      "next": "13"
+      "next": [
+        {
+          "when": {
+            "op": "and",
+            "terms": [
+              {
+                "flag": "nombre",
+                "value": "Haddar"
+              }
+            ]
+          },
+          "go": "13a"
+        },
+        {
+          "go": "13b"
+        },
+        {
+          "when": {
+            "op": "or",
+            "terms": [
+              {
+                "flag": "nombre",
+                "value": "Oro"
+              },
+              {
+                "flag": "nombre",
+                "value": "Lander"
+              },
+              {
+                "flag": "nombre",
+                "value": "Nemeia"
+              }
+            ]
+          },
+          "go": "13c"
+        }
+      ]
     },
-    "13": {
-      "text": "[[wave accent]]{nombre}[[/]]"
+    "13a-4a-3": {
+      "text": "[[wave]]\"Dame el caballo y lo que tengas encima\"[[/]] Te dice.{{300}} Blande una espada que parece sabe usar.\n\n¿Qué hacés?"
+    },
+    "13a-4a-2": {
+      "text": "Después de días viajando a caballo solo, te encontrás cara a cara con un asaltante.",
+      "next": "13a-4a-3"
+    },
+    "13a-4a-1": {
+      "text": "Ahora, porfavor. {{400}} Imaginemos esto.",
+      "next": "13a-4a-2"
+    },
+    "13a-4c-2a": {
+      "text": "Claro que lo haces. Cualquier persona de [[wave cyan]]Vivídice[[/]]{{600}} ha oído hablar de él. ",
+      "next": "13a-4a-1"
+    },
+    "13a-4c-2b-2": {
+      "text": "No era oriundo de la actual Sel, pero sí que  la conquistó. Vió allí un potencial inimaginable. Un lugar donde plasmar su{{600}} [[wave accent]]l{{200}}e{{200}}g{{200}}a{{200}}d{{200}}o[[/]]. "
+    },
+    "13a-4c-2b-1": {
+      "text": "Había una vez un [[wave cyan]]rey[[/]]: el [[accent]]Rey Haddar[[/]].",
+      "next": "13a-4c-2b-2"
+    },
+    "13a-4c-2b": {
+      "text": "Llamarse así y no conocer la historia del rey más grande de [[wave cyan]]Vivídice{{600}}.{{600}}.{{600}}.[[/]] Tenés suerte de que mi trabajo sea contar historias.",
+      "next": "13a-4c-2b-1"
+    },
+    "13a-4c-1": {
+      "text": "Solamente que... {{600}}No basta con eso, ¿Verdad? Después de todo, con ese nombre.  {{600}}Habrás escuchado su historia. ",
+      "options": [
+        {
+          "label": "Desde Luego",
+          "next": "13a-4c-2a"
+        },
+        {
+          "label": "¿Que historia?",
+          "next": "13a-4c-2b"
+        }
+      ],
+      "next": ""
+    },
+    "13a-4c": {
+      "text": "¡Así se habla! ¡Lo único que realmente importa es la visión de un rey, sus súbditos acatan!",
+      "next": "13a-4c-1"
+    },
+    "13a-4b": {
+      "text": "¿Por qué? {{1200}} No necesitas responderme. Si querés, podés preguntarme a algo a mí.",
+      "options": [
+        {
+          "label": "Opción A",
+          "set": {
+            "flag": ""
+          }
+        },
+        {
+          "label": "Opción B",
+          "set": {
+            "flag": ""
+          }
+        }
+      ],
+      "next": ""
+    },
+    "13a-4a": {
+      "text": {
+        "on": "atributo",
+        "cases": {
+          "honor": "Lo que separa a los Sapientes de las Bestias, ¿No es así? Una respuesta digna.",
+          "influencia": "Es, ciertamente, un atributo de suma importancia para un Rey. En eso estamos de acuerdo."
+        },
+        "default": "Ya veo..."
+      },
+      "next": "13a-4a-1"
+    },
+    "13a-3": {
+      "text": "¿Cuál de estas características crees que es la más valiosa en un [[wave cyan]]Rey[[/]]?",
+      "options": [
+        {
+          "label": "Una influencia Inigualable",
+          "set": {
+            "atributo": "influencia"
+          },
+          "next": "13a-4a"
+        },
+        {
+          "label": "Un Honor Inquebrantable",
+          "set": {
+            "atributo": "Honor"
+          },
+          "next": "13a-4a"
+        },
+        {
+          "label": "¿Por qué debería responderte?",
+          "next": "13a-4b"
+        },
+        {
+          "label": "Un Rey no necesita nada.",
+          "set": {
+            "atributo": "nada"
+          },
+          "when": {
+            "nombre": "Haddar"
+          },
+          "next": "13a-4c"
+        }
+      ],
+      "next": ""
+    },
+    "13a-2": {
+      "text": "¿Harías el favor de saciar la curiosidad de este viejo? dime {{600}} [[wave accent]]{nombre}[[/]] {{600}}.",
+      "next": "13a-3"
+    },
+    "13b": {
+      "text": "[[wave accent]]{nombre}[[/]]. {{600}} ¿No es de por aquí, cierto? [[wave]]jajaja[[/]]",
+      "next": "13a-1"
+    },
+    "13a-1": {
+      "text": "Momento tras momento,{{600}} [[wave accent]]{nombre}[[/]]{{600}}, mis yemas ennegrecidas me susurran más.",
+      "next": "13a-2"
+    },
+    "13c-1": {
+      "text": "Apostaría que ese, sin embargo, no es tu nombre real. Quizá estes confundido.\n¿Cuál es tu nombre?",
+      "input": {
+        "flag": "nombre",
+        "max": 20
+      },
+      "next": "13a-1"
+    },
+    "13c": {
+      "text": {
+        "on": "nombre",
+        "cases": {
+          "Lander": "{nombre}... Creo que lo he escuchado antes, un mago ¿Verdad? {{600}} Me hace feliz que compartas su nombre.",
+          "Oro": "{nombre}... Creo que lo he escuchado antes, un bardo ¿Verdad? {{600}} Me hace feliz que compartas su nombre.",
+          "Nemeia": "{nombre}... Creo que lo he escuchado antes, una artíficie, ¿verdad? {{600}} Me hace feliz que compartas su nombre."
+        },
+        "default": "{{nombre}}... Creo que lo he escuchado antes, dejando al telar contar sus historias. {{600}} No nos concierne ahora mismo"
+      },
+      "next": "13c-1"
+    },
+    "13a": {
+      "text": "{nombre}, ¡El nombre de un rey! Eso suele reservarse para gente destinada a la grandeza.",
+      "next": "13a-1"
     }
   }
 }

@@ -213,7 +213,10 @@ function allFlags() {
   for (const s of Object.values(script.steps)) {
     addKeys(s.set);
     if (s.text && typeof s.text === 'object' && s.text.on) names.add(s.text.on);
-    if (Array.isArray(s.next)) s.next.forEach((r) => addKeys(r.when));
+    if (Array.isArray(s.next)) s.next.forEach((r) => {
+      if (r.when && Array.isArray(r.when.terms)) r.when.terms.forEach((t) => t.flag && names.add(t.flag));
+      else addKeys(r.when);
+    });
     if (Array.isArray(s.options)) for (const o of s.options) { addKeys(o.set); addKeys(o.when); }
   }
   return [...names].filter(Boolean);
@@ -529,9 +532,12 @@ function recomputeIds() {
     const newId = remap[oldId];
     const targets = distinctTargets(oldId);
     const branching = targets.length > 1;
+    /* Una rama avanza el número y le agrega una letra (12 → 13a/13b/13c); un
+       único destino solo avanza el número (12 → 13). */
+    const base = continueId(newId);
     targets.forEach((tOld, i) => {
       if (remap[tOld] !== undefined) return;            // convergencia/ciclo: ya tiene id
-      let cand = uniqueId(branching ? newId + idLetter(i) : continueId(newId), taken);
+      const cand = uniqueId(branching ? base + idLetter(i) : base, taken);
       remap[tOld] = cand; taken.add(cand); queue.push(tOld);
     });
   }
@@ -664,9 +670,11 @@ function toggleBranch(id, on) {
   const step = script.steps[id];
   if (on) {
     const cur = typeof step.next === 'string' ? step.next : '';
-    step.next = [{ when: { flag: '' }, go: cur }, { go: '' }];
+    /* Default primero (sin `when`), después una condición. */
+    step.next = [{ go: cur }, { when: { op: 'and', terms: [{ flag: '', value: '' }] }, go: '' }];
   } else {
-    step.next = Array.isArray(step.next) ? (step.next.find((r) => r.go)?.go || '') : (step.next || '');
+    const def = Array.isArray(step.next) ? step.next.find((r) => r.when == null) : null;
+    step.next = def ? (def.go || '') : (typeof step.next === 'string' ? step.next : '');
   }
   structuralChange();
 }
@@ -676,6 +684,78 @@ function setOptionMode(id, i, mode) {
   if (mode === 'set') { delete opt.next; opt.set = opt.set || { flag: '' }; }
   else { delete opt.set; opt.next = ''; }
   structuralChange();
+}
+
+/* Editor de salida con ramificación condicional por flag (un destino fijo, o
+   reglas "si flag=valor → va a"). Reusado por nodos Continuar y Campo de texto. */
+function appendNextEditor(id, step) {
+  const branched = Array.isArray(step.next);
+  const head = el('div', { className: 'lbl row' });
+  head.append(el('span', { textContent: 'Siguiente' }));
+  const brLabel = el('label', { className: 'toggle' });
+  const brCb = el('input', { type: 'checkbox' }); brCb.checked = branched;
+  brCb.onchange = () => toggleBranch(id, brCb.checked);
+  brLabel.append(brCb, document.createTextNode('ramificar según flag'));
+  head.append(brLabel);
+  inspector.append(head);
+
+  if (!branched) {
+    inspector.append(nextSelect(typeof step.next === 'string' ? step.next : '', id, (v) => { step.next = v; structuralChange(); }));
+    return;
+  }
+  /* El "por defecto" (sin `when`) se muestra siempre primero; después las
+     condiciones. La posición no afecta: el default es el fallback. */
+  const def = step.next.find((r) => r.when == null);
+  const conds = step.next.filter((r) => r.when != null);
+  const ordered = def ? [def, ...conds] : conds;
+
+  ordered.forEach((rule) => {
+    const isDefault = rule.when == null;
+    const box = el('div', { className: 'opt' });
+    const headRow = el('div', { className: 'opt__head' });
+    headRow.append(el('span', { textContent: isDefault ? 'por defecto' : 'si…' }));
+    if (!isDefault) {
+      const rm = el('button', { className: 'del', textContent: '✕' });
+      rm.onclick = () => { step.next.splice(step.next.indexOf(rule), 1); structuralChange(); };
+      headRow.append(rm);
+    }
+    box.append(headRow);
+
+    if (!isDefault) {
+      /* Migra forma legacy {flag:valor} → {op, terms}. */
+      if (!Array.isArray(rule.when.terms)) {
+        const terms = Object.entries(rule.when).map(([flag, value]) => ({ flag, value }));
+        rule.when = { op: 'and', terms: terms.length ? terms : [{ flag: '', value: '' }] };
+      }
+      if (rule.when.terms.length > 1) {
+        const opSel = el('select');
+        opSel.append(el('option', { value: 'and', textContent: 'se cumplen TODAS (y)' }));
+        opSel.append(el('option', { value: 'or', textContent: 'se cumple ALGUNA (o)' }));
+        opSel.value = rule.when.op || 'and';
+        opSel.onchange = () => { rule.when.op = opSel.value; markDirty(); };
+        box.append(opSel);
+      }
+      rule.when.terms.forEach((term, ti) => {
+        const fi = el('input', { value: term.flag || '', placeholder: 'flag', list: 'flagnames' });
+        const vi = el('input', { value: term.value || '', placeholder: 'valor' });
+        const rmT = el('button', { className: 'del', textContent: '✕' });
+        fi.oninput = () => { term.flag = fi.value.trim(); markDirty(); };
+        vi.oninput = () => { term.value = vi.value; markDirty(); };
+        rmT.onclick = () => { rule.when.terms.splice(ti, 1); markDirty(); renderInspector(); };
+        box.append(el('div', { className: 'kvrow' }, [fi, el('span', { className: 'eq', textContent: '=' }), vi, rmT]));
+      });
+      const addT = el('button', { className: 'ghost', textContent: '+ condición', style: 'margin-top:6px;font-size:11px' });
+      addT.onclick = () => { rule.when.terms.push({ flag: '', value: '' }); markDirty(); renderInspector(); };
+      box.append(addT);
+    }
+    box.append(el('span', { className: 'lbl', textContent: 'Va a' }));
+    box.append(nextSelect(rule.go, id, (v) => { rule.go = v; structuralChange(); }));
+    inspector.append(box);
+  });
+  const addRule = el('button', { textContent: '+ rama', style: 'margin-top:8px' });
+  addRule.onclick = () => { step.next.push({ when: { op: 'and', terms: [{ flag: '', value: '' }] }, go: '' }); structuralChange(); };
+  inspector.append(addRule);
+  inspector.append(el('div', { className: 'hint', textContent: 'Las condiciones se evalúan en orden; la primera que se cumple gana. Si ninguna, va por defecto.' }));
 }
 
 function renderInspector() {
@@ -813,45 +893,12 @@ function renderInspector() {
     phInp.oninput = () => { spec.placeholder = phInp.value; markDirty(); };
     inspector.append(phInp);
 
-    inspector.append(el('span', { className: 'lbl', textContent: 'Siguiente paso' }));
-    inspector.append(nextSelect(typeof step.next === 'string' ? step.next : '', id, (v) => { step.next = v; structuralChange(); }));
     inspector.append(el('div', { className: 'hint', textContent: 'El jugador escribe libremente; se guarda en la flag y podés usarlo con {' + (spec.flag || 'flag') + '}.' }));
+    appendNextEditor(id, step);
   }
 
   if (k === 'next') {
-    const branched = Array.isArray(step.next);
-    const nextHead = el('div', { className: 'lbl row' });
-    nextHead.append(el('span', { textContent: 'Siguiente' }));
-    const brLabel = el('label', { className: 'toggle' });
-    const brCb = el('input', { type: 'checkbox' }); brCb.checked = branched;
-    brCb.onchange = () => toggleBranch(id, brCb.checked);
-    brLabel.append(brCb, document.createTextNode('ramificar según flag'));
-    nextHead.append(brLabel);
-    inspector.append(nextHead);
-
-    if (!branched) {
-      inspector.append(nextSelect(step.next, id, (v) => { step.next = v; structuralChange(); }));
-    } else {
-      step.next.forEach((rule, i) => {
-        const isDefault = !rule.when || Object.keys(rule.when).length === 0;
-        const rm = el('button', { className: 'del', textContent: '✕' });
-        rm.onclick = () => { step.next.splice(i, 1); structuralChange(); };
-        const box = el('div', { className: 'opt' }, [
-          el('div', { className: 'opt__head' }, [el('span', { textContent: isDefault ? 'por defecto' : 'rama #' + (i + 1) }), rm]),
-        ]);
-        if (!isDefault) {
-          box.append(el('span', { className: 'lbl', textContent: 'Si' }));
-          box.append(kvEditor(rule.when, '+ condición', () => { markDirty(); renderInspector(); }));
-        }
-        box.append(el('span', { className: 'lbl', textContent: 'Va a' }));
-        box.append(nextSelect(rule.go, id, (v) => { rule.go = v; structuralChange(); }));
-        inspector.append(box);
-      });
-      const addRule = el('button', { textContent: '+ rama', style: 'margin-top:8px' });
-      addRule.onclick = () => { step.next.push({ when: { flag: '' }, go: '' }); structuralChange(); };
-      inspector.append(addRule);
-      inspector.append(el('div', { className: 'hint', textContent: 'La primera rama que matchea gana. Una sin condición es el fallback.' }));
-    }
+    appendNextEditor(id, step);
   }
 
   if (k === 'choice') {
@@ -1011,7 +1058,15 @@ function pvAppendChar(c, idx) {
 }
 function pvMatches(cond) {
   if (!cond) return true;
-  return Object.entries(cond).every(([k, v]) => String(pv.flags[k] ?? '') === String(v));
+  if (Array.isArray(cond.terms)) {
+    const terms = cond.terms.filter((t) => t && t.flag);
+    if (!terms.length) return false;
+    const test = (t) => String(pv.flags[t.flag] ?? '') === String(t.value);
+    return cond.op === 'or' ? terms.some(test) : terms.every(test);
+  }
+  const entries = Object.entries(cond);
+  if (!entries.length) return true;
+  return entries.every(([k, v]) => String(pv.flags[k] ?? '') === String(v));
 }
 function pvText(step) {
   const t = step.text;
@@ -1026,8 +1081,12 @@ function pvOptions(step) { return (step.options || []).filter((o) => pvMatches(o
 function pvNext(next) {
   if (next == null) return null;
   if (typeof next === 'string') return next || null;
-  for (const r of next) if (pvMatches(r.when)) return r.go || null;
-  return null;
+  let fallback = null, has = false;
+  for (const r of next) {
+    if (r.when == null) { if (!has) { fallback = r.go || null; has = true; } continue; }
+    if (pvMatches(r.when)) return r.go || null;
+  }
+  return fallback;
 }
 function pvGo(dest) { (dest && script.steps[dest]) ? pvType(dest) : pvClose(); }
 function pvType(id) {

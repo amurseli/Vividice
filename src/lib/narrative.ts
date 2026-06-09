@@ -2,8 +2,13 @@
    guardan como "true"/"false" y se comparan por string). */
 export type Flags = Record<string, string>;
 
-/* Condición: todas las claves deben coincidir con las flags actuales. */
+/* Condición. Dos formas:
+   - objeto legacy { flag: valor, ... } → todas deben coincidir (AND).
+   - cláusula { op, terms } → AND/OR sobre una lista de términos flag=valor. */
 export type Cond = Record<string, string>;
+export type Term = { flag: string; value: string };
+export type Clause = { op: 'and' | 'or'; terms: Term[] };
+export type AnyCond = Cond | Clause;
 
 /* Texto que cambia según una flag. Si no hay caso para el valor actual,
    cae a `default` (o vacío). */
@@ -26,7 +31,7 @@ export type Option = {
 
 /* `next` puede ser un id fijo o una lista de reglas: la primera que matchea
    gana; una regla sin `when` es el fallback. */
-export type NextRule = { when?: Cond; go: string | null };
+export type NextRule = { when?: AnyCond; go: string | null };
 export type Next = string | null | NextRule[];
 
 /* Campo de texto libre: el jugador escribe y se guarda en una flag. */
@@ -61,12 +66,20 @@ export function stepKind(step: Step): StepKind {
   return 'next' in step ? 'next' : 'end';
 }
 
-/* ¿La condición se cumple con las flags actuales? Sin condición = siempre. */
-export function matches(cond: Cond | undefined, flags: Flags): boolean {
+/* ¿La condición se cumple con las flags actuales? Sin condición = siempre.
+   Soporta el objeto legacy (AND) y la cláusula { op, terms } (AND/OR). */
+export function matches(cond: AnyCond | undefined, flags: Flags): boolean {
   if (!cond) return true;
-  return Object.entries(cond).every(
-    ([k, v]) => String(flags[k] ?? '') === String(v),
-  );
+  const c = cond as Clause;
+  if (Array.isArray(c.terms)) {
+    const terms = c.terms.filter((t) => t && t.flag);
+    if (!terms.length) return false; // condición incompleta: no matchea
+    const test = (t: Term) => String(flags[t.flag] ?? '') === String(t.value);
+    return c.op === 'or' ? terms.some(test) : terms.every(test);
+  }
+  const entries = Object.entries(cond as Cond);
+  if (!entries.length) return true;
+  return entries.every(([k, v]) => String(flags[k] ?? '') === String(v));
 }
 
 /* Reemplaza tokens {flag} por el valor actual de la flag. Un token cuya flag
@@ -155,8 +168,19 @@ export function visibleOptions(step: Step, flags: Flags): Option[] {
 export function resolveNext(next: Next | undefined, flags: Flags): string | null {
   if (next == null) return null;
   if (typeof next === 'string') return next || null;
-  for (const rule of next) if (matches(rule.when, flags)) return rule.go ?? null;
-  return null;
+  /* Las reglas con `when` se evalúan en orden (primera que se cumple gana). La
+     regla sin `when` es el "por defecto" y se usa sólo si ninguna se cumple,
+     sin importar en qué posición esté. */
+  let fallback: string | null = null;
+  let hasFallback = false;
+  for (const rule of next) {
+    if (rule.when == null) {
+      if (!hasFallback) { fallback = rule.go ?? null; hasFallback = true; }
+      continue;
+    }
+    if (matches(rule.when, flags)) return rule.go ?? null;
+  }
+  return fallback;
 }
 
 /* Genera un id de step no usado ("paso-N"). */
