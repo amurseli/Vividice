@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShaderBackground from '../../components/ShaderBackground.tsx';
+import VisualNovel from '../../components/VisualNovel.tsx';
+import intro from '../../data/intro.json';
+import { url } from '../../lib/url';
+---
+
+<BaseLayout title="Historias" width="bleed" hideFooter hideNav>
+  <div class="intro-stage">
+    <div class="intro-stage__bg">
+      <ShaderBackground client:only="react" />
+    </div>
+    <VisualNovel
+      client:load
+      script={intro}
+      skipHref={url('lugares')}
+      collectKey={import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '96869b57-121c-4693-b919-1be2f990ca2f'}
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .intro-stage {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .intro-stage__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+</style>

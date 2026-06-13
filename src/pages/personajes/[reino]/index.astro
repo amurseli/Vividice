@@ -1,0 +1,92 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EntryCard from '../../../components/EntryCard.astro';
+import {
+  REINOS,
+  reinoDe,
+  urlPersonaje,
+  urlReino,
+  type Reino,
+  type Personaje,
+} from '../../../lib/personajes';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  return REINOS.map((reino) => ({
+    params: { reino: reino.slug },
+    props: { reino },
+  }));
+}
+
+type Props = { reino: Reino };
+const { reino } = Astro.props;
+
+const todos = await getCollection('personajes', ({ data }) => !data.hidden);
+const enReino = todos
+  .filter((p: Personaje) => reinoDe(p)?.slug === reino.slug)
+  .sort((a: Personaje, b: Personaje) =>
+    a.data.nombre.localeCompare(b.data.nombre, 'es'),
+  );
+---
+
+<BaseLayout title={reino.label} width="wide">
+  <p class="breadcrumb">
+    <a href={url('personajes')}>Personajes</a>
+    <span aria-hidden="true">›</span>
+    <span>{reino.label}</span>
+  </p>
+
+  <h1>{reino.label}</h1>
+  <p class="intro">{enReino.length} {enReino.length === 1 ? 'personaje' : 'personajes'}.</p>
+
+  {enReino.length > 0 ? (
+    <div class="personajes-grid">
+      {enReino.map((p: Personaje) => (
+        <EntryCard
+          href={urlPersonaje(p)}
+          title={p.data.nombre}
+          kicker={[p.data.tipo, p.data.raza].filter(Boolean).join(' · ')}
+        />
+      ))}
+    </div>
+  ) : (
+    <p class="empty">Todavía no hay personajes en este reino.</p>
+  )}
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-2);
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+  }
+  .personajes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+  .empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+  @media (max-width: 640px) {
+    .personajes-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,49 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EntryCard from '../../components/EntryCard.astro';
+import { REINOS, reinoDe, urlReino } from '../../lib/personajes';
+
+const todos = await getCollection('personajes', ({ data }) => !data.hidden);
+
+const counts = new Map<string, number>();
+for (const p of todos) {
+  const reino = reinoDe(p);
+  if (!reino) continue;
+  counts.set(reino.slug, (counts.get(reino.slug) ?? 0) + 1);
+}
+---
+
+<BaseLayout title="Personajes" width="full">
+  <h1>Personajes</h1>
+  <p class="intro">Explorá los personajes por reino.</p>
+
+  <ul class="reinos-list">
+    {REINOS.map((reino) => (
+      <li>
+        <EntryCard
+          href={urlReino(reino)}
+          title={reino.label}
+          kicker={reino.subtitle}
+          description={`${counts.get(reino.slug) ?? 0} personajes`}
+          variant="section"
+        />
+      </li>
+    ))}
+  </ul>
+</BaseLayout>
+
+<style>
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+  }
+  .reinos-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+</style>

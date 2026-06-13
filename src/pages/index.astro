@@ -1,40 +1,75 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ShaderBackground from '../components/ShaderBackground.tsx';
-import VisualNovel from '../components/VisualNovel.tsx';
-import intro from '../data/intro.json';
 import { url } from '../lib/url';
 ---
 
-<BaseLayout title="Inicio" width="bleed" hideFooter hideNav>
-  {/*
-    Intro tipo novela visual. El shader (negro + flujo rojo) es el fondo;
-    VisualNovel se monta encima y maneja el guion (src/data/intro.json),
-    el typewriter y el botón de skip. Al terminar o saltear -> /lugares.
-  */}
-  <div class="intro-stage">
-    <div class="intro-stage__bg">
+<BaseLayout title="Inicio" width="bleed" hideFooter transparentNav>
+  <div class="landing">
+    <div class="landing__bg">
       <ShaderBackground client:only="react" />
     </div>
-    <VisualNovel
-      client:load
-      script={intro}
-      skipHref={url('lugares')}
-      collectKey={import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '96869b57-121c-4693-b919-1be2f990ca2f'}
-    />
+    <div class="landing__content">
+      <h1 class="landing__title">Vivídice</h1>
+      <nav class="landing__links">
+        <a href={url('lugares')}>Lugares</a>
+        <a href={url('personajes')}>Personajes</a>
+        <a href={url('historias')}>Historias</a>
+      </nav>
+    </div>
   </div>
 </BaseLayout>
 
 <style>
-  .intro-stage {
+  .landing {
     position: relative;
     width: 100%;
     height: 100dvh;
     overflow: hidden;
   }
-  .intro-stage__bg {
+
+  .landing__bg {
     position: absolute;
     inset: 0;
     z-index: 0;
+  }
+
+  .landing__content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-5);
+    text-align: center;
+    padding: var(--space-5);
+  }
+
+  .landing__title {
+    font-size: clamp(3.5rem, 12vw, 7rem);
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .landing__links {
+    display: flex;
+    gap: var(--space-5);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .landing__links a {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    transition: color 120ms ease;
+  }
+
+  .landing__links a:hover {
+    color: var(--color-text);
+    text-decoration: none;
   }
 </style>

@@ -1,0 +1,99 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const SECCIONES = [
+  {
+    titulo: 'El Mundo de Vivídice',
+    texto:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+  },
+  {
+    titulo: 'La Era de Sangre',
+    texto:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+  },
+  {
+    titulo: 'Las Razas',
+    texto:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+  },
+  {
+    titulo: 'La Magia',
+    texto:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+  },
+  {
+    titulo: 'Los Reinos',
+    texto:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+  },
+  {
+    titulo: 'Las Guerras',
+    texto:
+      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+  },
+];
+---
+
+<BaseLayout title="Guía del Mundo" width="bleed" hideFooter>
+  <div class="guia">
+    {SECCIONES.map((s, i) => (
+      <section class={`seccion ${i % 2 === 0 ? 'seccion--oscura' : 'seccion--clara'}`}>
+        <div class="seccion__inner">
+          <h2 class="seccion__titulo">{s.titulo}</h2>
+          <p class="seccion__texto">{s.texto}</p>
+        </div>
+      </section>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .guia {
+    width: 100%;
+  }
+
+  .seccion {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: var(--space-6) clamp(2rem, 10vw, 10rem);
+  }
+
+  /* Impar (0, 2, 4): fondo negro, texto rojo, alineado izquierda */
+  .seccion--oscura {
+    background-color: var(--color-bg);
+    color: var(--color-accent);
+    justify-content: flex-start;
+  }
+
+  /* Par (1, 3, 5): fondo rojo, texto negro, alineado derecha */
+  .seccion--clara {
+    background-color: var(--color-accent);
+    color: var(--color-bg);
+    justify-content: flex-end;
+  }
+
+  .seccion__inner {
+    max-width: 55ch;
+  }
+
+  .seccion--clara .seccion__inner {
+    text-align: right;
+  }
+
+  .seccion__titulo {
+    font-family: var(--font-serif);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1.1;
+    margin: 0 0 var(--space-4);
+    color: inherit;
+  }
+
+  .seccion__texto {
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    line-height: 1.7;
+    margin: 0;
+    color: inherit;
+  }
+</style>

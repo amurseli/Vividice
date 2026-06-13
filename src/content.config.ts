@@ -71,4 +71,36 @@ const lugares = defineCollection({
   }),
 });
 
-export const collections = { lugares };
+const personajes = defineCollection({
+  loader: glob({
+    pattern: '**/*.md',
+    base: `${VIVIDICE_BASE}/1- Entidades`,
+    generateId: ({ entry }) => {
+      const filename = entry.split('/').pop() ?? entry;
+      return filename.replace(/\.md$/, '').toLowerCase();
+    },
+  }),
+  schema: z.object({
+    nombre: z.string(),
+    /* .catch('NPC') — fallback para entradas con tipo desconocido (ej: "personaje"
+       del template viejo). Actualizar tipo en Brain a PC | NPC | deidad. */
+    tipo: z.preprocess(
+      (v) => (typeof v === 'string' ? v.trim() : v),
+      z.enum(['PC', 'NPC', 'deidad']).catch('NPC'),
+    ),
+    raza: z.string().nullish(),
+    genero: z.string().nullish(),
+    estado: z.preprocess(
+      (v) => (typeof v === 'string' ? v.toLowerCase() : v),
+      z.enum(['vivo', 'muerto', 'desconocido']).nullish(),
+    ),
+    ocupacion: z.string().nullish(),
+    aliases: z
+      .array(z.string().nullable())
+      .nullish()
+      .transform((arr) => (arr ?? []).filter((v): v is string => Boolean(v))),
+    hidden: z.boolean().default(false),
+  }),
+});
+
+export const collections = { lugares, personajes };

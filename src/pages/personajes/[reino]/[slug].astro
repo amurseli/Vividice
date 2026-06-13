@@ -1,0 +1,113 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { reinoDe, urlReino, type Personaje } from '../../../lib/personajes';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  const personajes = await getCollection('personajes', ({ data }) => !data.hidden);
+  return personajes
+    .map((p: Personaje) => {
+      const reino = reinoDe(p);
+      if (!reino) return null;
+      return {
+        params: { reino: reino.slug, slug: p.id },
+        props: { personaje: p },
+      };
+    })
+    .filter((p: unknown): p is NonNullable<typeof p> => p !== null);
+}
+
+type Props = { personaje: Personaje };
+const { personaje } = Astro.props;
+const reino = reinoDe(personaje);
+
+const { Content } = await render(personaje);
+const { nombre, tipo, raza, genero, estado, ocupacion, aliases } = personaje.data;
+
+const meta = [raza, genero, ocupacion].filter(Boolean).join(' · ');
+---
+
+<BaseLayout title={nombre}>
+  <article>
+    <p class="breadcrumb">
+      <a href={url('personajes')}>Personajes</a>
+      <span aria-hidden="true">›</span>
+      {reino && <a href={urlReino(reino)}>{reino.label}</a>}
+      {reino && <span aria-hidden="true">›</span>}
+      <span>{nombre}</span>
+    </p>
+
+    <header class="personaje-header">
+      <p class="kicker">
+        {tipo}
+        {estado && estado !== 'vivo' && <span class={`estado estado--${estado}`}>{estado}</span>}
+      </p>
+      <h1>{nombre}</h1>
+      {meta && <p class="meta">{meta}</p>}
+      {aliases.length > 0 && (
+        <p class="aliases">También conocido como: {aliases.join(', ')}</p>
+      )}
+    </header>
+
+    <Content />
+  </article>
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-4);
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .personaje-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .kicker {
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    margin: 0 0 var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .estado {
+    text-transform: lowercase;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 99px;
+    border: 1px solid currentColor;
+  }
+  .estado--muerto {
+    color: var(--color-text-muted);
+  }
+  .estado--desconocido {
+    color: var(--color-accent-2);
+  }
+  .meta {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: var(--space-2) 0 0;
+  }
+  .aliases {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: var(--space-2) 0 0;
+  }
+</style>

@@ -15,6 +15,8 @@ const LINKS: NavLink[] = [
   { href: '/', label: 'Inicio' },
   { href: '/personajes', label: 'Personajes' },
   { href: '/lugares', label: 'Lugares' },
+  { href: '/historias', label: 'Historias' },
+  { href: '/guia-del-mundo', label: 'Guía del Mundo' },
   { href: '/mapa', label: 'Mapa' },
 ];
 
