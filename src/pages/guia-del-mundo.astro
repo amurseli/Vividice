@@ -1,50 +1,78 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-
-const SECCIONES = [
-  {
-    titulo: 'El Mundo de Vivídice',
-    texto:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-  },
-  {
-    titulo: 'La Era de Sangre',
-    texto:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-  },
-  {
-    titulo: 'Las Razas',
-    texto:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-  },
-  {
-    titulo: 'La Magia',
-    texto:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-  },
-  {
-    titulo: 'Los Reinos',
-    texto:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-  },
-  {
-    titulo: 'Las Guerras',
-    texto:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-  },
-];
 ---
 
 <BaseLayout title="Guía del Mundo" width="bleed" hideFooter>
   <div class="guia">
-    {SECCIONES.map((s, i) => (
-      <section class={`seccion ${i % 2 === 0 ? 'seccion--oscura' : 'seccion--clara'}`}>
-        <div class="seccion__inner">
-          <h2 class="seccion__titulo">{s.titulo}</h2>
-          <p class="seccion__texto">{s.texto}</p>
+
+    <!-- Vivídice -->
+    <section class="seccion seccion--oscura">
+      <div class="seccion__inner">
+        <h2 class="seccion__titulo">Vivídice</h2>
+        <div class="seccion__parrafos">
+          <p class="seccion__parrafo">"Contra Malicia y Oscuridad
+Con refulgente espada en mano
+Acaricia la unidad
+Y Repele la Calamidad"</p>
+          <p class="seccion__parrafo">Siete siglos han pasado desde que la última Calamidad azotó el mundo. Rojo húmedo sobre Negro seco; con el pasar de los eones, los hombres se convierten en leyendas y las leyendas en susurros.
+Las Calamidades son producto de la tierra, pero la Guerra lo es de sus habitantes.</p>
         </div>
-      </section>
-    ))}
+      </div>
+    </section>
+
+    <!-- Las Razas -->
+    <section class="seccion seccion--clara">
+      <div class="seccion__inner">
+        <h2 class="seccion__titulo">Las Razas</h2>
+        <div class="seccion__parrafos seccion__parrafos--tres">
+          <div class="seccion__columna">
+            <h3 class="seccion__subtitulo">Las Razas Eternas</h3>
+            <p class="seccion__parrafo">Ancianas y primigenias, Las Razas Eternas siguen de pie, aunque a duras penas. Los *pargas* portan las marcas de sus elementos por el cuerpo: miembros de ascua viva, cabello que fluye como agua, rostro tallados de pura roca. Escasas razas portan consigo el peso y el honor de haber sobrevivido tanto.</p>
+          </div>
+          <div class="seccion__columna">
+            <h3 class="seccion__subtitulo">Las Razas de Sangre</h3>
+            <p class="seccion__parrafo">Algunos, como los Elfos y los Enanos, todavía portan la tragedia en sus venas. Sobrevivientes de la última Calamidad, sueños del terror y la destrucción los azotan, pero sobre todo, el remodimiento de haber abandonado al mundo. Viven secluidos del mundo, anhelando el dulce olvido del tiempo, pues la muerte les es ajena. Los *Humanos* se irguen con el honor de llamarse los "supervivientes", la raza que venció la Calamidad. Ellos tampoco salieron ilesos de la batalla, pues del contacto con la arcaica magia de destrucción y desolación, fueron alterados, dando paso a las Nuevas Razas</p>
+          </div>
+          <div class="seccion__columna">
+            <h3 class="seccion__subtitulo">Las Nuevas Razas</h3>
+            <p class="seccion__parrafo">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo nemo enim ipsam voluptatem.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- La Magia -->
+    <section class="seccion seccion--oscura">
+      <div class="seccion__inner">
+        <h2 class="seccion__titulo">La Magia</h2>
+        <div class="seccion__parrafos">
+          <p class="seccion__parrafo">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate.</p>
+          <p class="seccion__parrafo">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo nemo enim ipsam voluptatem.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Los Reinos -->
+    <section class="seccion seccion--clara">
+      <div class="seccion__inner">
+        <h2 class="seccion__titulo">Los Reinos</h2>
+        <div class="seccion__parrafos">
+          <p class="seccion__parrafo">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Las Guerras -->
+    <section class="seccion seccion--oscura">
+      <div class="seccion__inner">
+        <h2 class="seccion__titulo">Las Guerras</h2>
+        <div class="seccion__parrafos">
+          <p class="seccion__parrafo">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate.</p>
+          <p class="seccion__parrafo">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo nemo enim ipsam voluptatem.</p>
+        </div>
+      </div>
+    </section>
+
   </div>
 </BaseLayout>
 
@@ -56,44 +84,135 @@ const SECCIONES = [
   .seccion {
     min-height: 100vh;
     display: flex;
-    align-items: center;
-    padding: var(--space-6) clamp(2rem, 10vw, 10rem);
+    align-items: flex-start;
+    padding: clamp(6rem, 14vh, 10rem) clamp(2rem, 8vw, 8rem) var(--space-6);
   }
 
-  /* Impar (0, 2, 4): fondo negro, texto rojo, alineado izquierda */
   .seccion--oscura {
     background-color: var(--color-bg);
     color: var(--color-accent);
-    justify-content: flex-start;
   }
 
-  /* Par (1, 3, 5): fondo rojo, texto negro, alineado derecha */
   .seccion--clara {
     background-color: var(--color-accent);
     color: var(--color-bg);
-    justify-content: flex-end;
   }
 
   .seccion__inner {
-    max-width: 55ch;
-  }
-
-  .seccion--clara .seccion__inner {
-    text-align: right;
+    width: 100%;
   }
 
   .seccion__titulo {
     font-family: var(--font-serif);
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    line-height: 1.1;
-    margin: 0 0 var(--space-4);
+    font-size: clamp(4.5rem, 10.8vw, 12.6rem);
+    line-height: 1;
+    margin: 0 0 var(--space-5);
     color: inherit;
   }
 
-  .seccion__texto {
-    font-size: clamp(1rem, 1.5vw, 1.2rem);
-    line-height: 1.7;
-    margin: 0;
+  .seccion--clara .seccion__titulo {
+    text-align: right;
+  }
+
+  .seccion__parrafos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .seccion__parrafos--tres {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .seccion__columna {
+    padding: 0 var(--space-6);
+    border-right: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  }
+
+  .seccion__columna:first-child {
+    padding-left: 0;
+  }
+
+  .seccion__columna:last-child {
+    padding-right: 0;
+    border-right: none;
+  }
+
+  .seccion__subtitulo {
+    font-family: var(--font-serif);
+    font-size: clamp(1.2rem, 2vw, 1.8rem);
+    margin: 0 0 var(--space-3);
     color: inherit;
+  }
+
+  .seccion--clara .seccion__subtitulo {
+    text-align: right;
+  }
+
+  .seccion__parrafo {
+    margin: 0;
+    padding: 0 var(--space-6);
+    font-size: clamp(1rem, 1.3vw, 1.15rem);
+    line-height: 1.8;
+    color: inherit;
+    white-space: pre-line;
+    border-right: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  }
+
+  .seccion__parrafo:first-child {
+    padding-left: 0;
+  }
+
+  .seccion__parrafo:last-child {
+    padding-right: 0;
+    border-right: none;
+  }
+
+  .seccion__columna .seccion__parrafo {
+    padding: 0;
+    border-right: none;
+  }
+
+  .seccion--clara .seccion__parrafos:not(.seccion__parrafos--tres) {
+    grid-template-columns: 1fr;
+  }
+
+  .seccion--clara .seccion__parrafo {
+    text-align: right;
+    border-right: none;
+    padding: 0;
+  }
+
+  .seccion--clara .seccion__columna {
+    text-align: right;
+  }
+
+  @media (max-width: 768px) {
+    .seccion__parrafos,
+    .seccion__parrafos--tres {
+      grid-template-columns: 1fr;
+    }
+
+    .seccion__parrafo {
+      padding: 0 0 var(--space-4);
+      border-right: none;
+      border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    }
+
+    .seccion__parrafo:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .seccion__columna {
+      padding: 0 0 var(--space-4);
+      border-right: none;
+      border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    }
+
+    .seccion__columna:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
   }
 </style>
