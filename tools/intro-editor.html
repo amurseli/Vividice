@@ -46,6 +46,8 @@
   }
   button { cursor: pointer; transition: border-color .12s, color .12s, background .12s; }
   button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button:disabled:hover { border-color: var(--border); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
   button.primary:hover { opacity: .9; }
   button.ghost { background: transparent; }
@@ -123,7 +125,7 @@
   .pv__text { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 2.2rem); line-height: 1.4; min-height: 1.4em; margin: 0; }
   .pv__char { animation: fadein .5s ease both; }
   @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
-  .pv__wave { display: inline-block; animation: pv-wave 3.2s ease-in-out infinite; }
+  .pv__wave { display: inline-block; white-space: pre; animation: pv-wave 3.2s ease-in-out infinite; }
   @keyframes pv-wave { 0%,100% { transform: translateY(0.14em) } 50% { transform: translateY(-0.14em) } }
   .pv__opts { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-direction: column; gap: 12px; align-items: center; }
   .pv__opts button { min-width: 16rem; padding: 12px 24px; }
@@ -140,6 +142,7 @@
   <span class="spacer"></span>
   <button id="add">+ Nodo</button>
   <button id="play">▶ Probar</button>
+  <button id="playHere" disabled>▶ Desde aquí</button>
   <button id="fit" class="ghost">Centrar</button>
   <button id="reload" class="ghost">Recargar</button>
   <button id="save" class="primary">Guardar</button>
@@ -217,7 +220,11 @@ function allFlags() {
       if (r.when && Array.isArray(r.when.terms)) r.when.terms.forEach((t) => t.flag && names.add(t.flag));
       else addKeys(r.when);
     });
-    if (Array.isArray(s.options)) for (const o of s.options) { addKeys(o.set); addKeys(o.when); }
+    if (Array.isArray(s.options)) for (const o of s.options) {
+      addKeys(o.set);
+      if (o.when && Array.isArray(o.when.terms)) o.when.terms.forEach((t) => t.flag && names.add(t.flag));
+      else addKeys(o.when);
+    }
   }
   return [...names].filter(Boolean);
 }
@@ -243,10 +250,10 @@ function incomingCases(id) {
 function outCount(step) {
   const k = kindOf(step);
   if (k === 'next' || k === 'input') return Array.isArray(step.next) ? step.next.length : 1;
-  if (k === 'choice') return isBranchingChoice(step) ? step.options.length : 1;
+  if (k === 'choice') return step.options.length;   // un puerto por opción, siempre
   return 0;
 }
-function stripRich(s) { return (s || '').replace(/\[\[\/?.*?\]\]/g, '').replace(/\{\{.*?\}\}/g, ''); }
+function stripRich(s) { return (s || '').replace(/\[\[\/?.*?\]\]/g, '').replace(/\{\{.*?\}\}/g, '').replace(/\\n|\n/g, ' '); }
 function nodeTextPreview(step) {
   const t = step.text;
   if (t && typeof t === 'object') {
@@ -259,7 +266,7 @@ function kindLabel(step) {
   const k = kindOf(step);
   if (k === 'input') return 'campo · ' + (step.input.flag || '?');
   if (k === 'next') return Array.isArray(step.next) ? 'continuar · ' + step.next.length + ' ramas' : 'continuar';
-  if (k === 'choice') return (isFlagChoice(step) ? 'flag · ' : 'elección · ') + step.options.length;
+  if (k === 'choice') return 'elección · ' + step.options.length;
   return 'fin';
 }
 /* Destino de cada puerto, alineado con outAnchors. */
@@ -267,9 +274,10 @@ function outTargets(id) {
   const step = script.steps[id], k = kindOf(step);
   if (k === 'next' || k === 'input') return Array.isArray(step.next) ? step.next.map((r) => r.go) : [step.next];
   if (k === 'choice') {
+    /* Cada opción tiene su propio destino. Si no lo definió, cae al `next`
+       compartido (compatibilidad con elecciones convergentes legacy). */
     const shared = typeof step.next === 'string' ? step.next : null;
-    if (!isBranchingChoice(step)) return [shared];   // converge: un solo puerto
-    return step.options.map((o) => (optionBranches(o) ? (o.next || null) : shared));
+    return step.options.map((o) => ('next' in o ? (o.next || null) : shared));
   }
   return [];
 }
@@ -284,9 +292,7 @@ function autolayout() {
   while (q.length) {
     const id = q.shift();
     const step = script.steps[id];
-    const targets = kindOf(step) === 'choice'
-      ? step.options.map((o) => o.next)
-      : [step.next];
+    const targets = outTargets(id);
     for (const t of targets)
       if (t && script.steps[t] && depth[t] === undefined) { depth[t] = depth[id] + 1; q.push(t); }
   }
@@ -460,8 +466,7 @@ function startWire(fromId, i, e) {
     if (targetId === fromId) return renderGraph();
     const s = script.steps[fromId], k = kindOf(s);
     if (k === 'choice') {
-      if (isBranchingChoice(s)) s.options[i].next = targetId;  // puerto por opción
-      else s.next = targetId;                                  // puerto único: converge
+      s.options[i].next = targetId;            // puerto i = opción i
     } else if (Array.isArray(s.next)) {
       s.next[i].go = targetId;                 // rama condicional
     } else {
@@ -572,8 +577,8 @@ function changeKind(id, kind) {
   if (kind === 'next') step.next = '';
   else if (kind === 'input') { step.input = { flag: 'nombre', max: 20 }; step.next = ''; }
   else if (kind === 'choice') {
-    /* Por defecto, elección convergente (recuerda flag y sigue al mismo nodo). */
-    step.options = [{ label: 'Opción A', set: { flag: '' } }, { label: 'Opción B', set: { flag: '' } }];
+    /* Dos opciones con salidas abiertas; las flags se agregan a mano. */
+    step.options = [{ label: 'Opción A' }, { label: 'Opción B' }];
     step.next = '';
   }
   structuralChange();
@@ -614,7 +619,7 @@ function nextSelect(value, selfId, onChange) {
   const others = Object.keys(script.steps).filter((x) => x !== selfId);
   const missing = value && !others.includes(value);
   const sel = el('select', { className: 'next' + (missing ? ' missing' : '') });
-  sel.append(el('option', { value: '', textContent: '— fin —' }));
+  sel.append(el('option', { value: '', textContent: '— sin conectar —' }));
   for (const id of others) sel.append(el('option', { value: id, textContent: id }));
   if (missing) sel.append(el('option', { value, textContent: value + ' (no existe)' }));
   sel.value = value || '';
@@ -652,6 +657,43 @@ function kvEditor(obj, addLabel, onStruct) {
   return wrap;
 }
 
+/* Editor de cláusula condicional {op, terms}: lista de flag=valor combinadas
+   con AND/OR (el selector aparece recién con 2+ términos). Muta `host[key]` in
+   situ y migra la forma legacy {flag:valor}. `onEmpty` se llama al borrar el
+   último término (el caller decide si quita la condición); `onRender`
+   re-dibuja. Compartido por el ramificado y el "mostrar si" de las opciones. */
+function appendClauseEditor(box, host, key, { onEmpty, onRender }) {
+  let when = host[key];
+  if (!when || !Array.isArray(when.terms)) {
+    const terms = when ? Object.entries(when).map(([flag, value]) => ({ flag, value })) : [];
+    when = host[key] = { op: 'and', terms: terms.length ? terms : [{ flag: '', value: '' }] };
+  }
+  if (when.terms.length > 1) {
+    const opSel = el('select');
+    opSel.append(el('option', { value: 'and', textContent: 'se cumplen TODAS (y)' }));
+    opSel.append(el('option', { value: 'or', textContent: 'se cumple ALGUNA (o)' }));
+    opSel.value = when.op || 'and';
+    opSel.onchange = () => { when.op = opSel.value; markDirty(); };
+    box.append(opSel);
+  }
+  when.terms.forEach((term, ti) => {
+    const fi = el('input', { value: term.flag || '', placeholder: 'flag', list: 'flagnames' });
+    const vi = el('input', { value: term.value || '', placeholder: 'valor' });
+    const rmT = el('button', { className: 'del', textContent: '✕' });
+    fi.oninput = () => { term.flag = fi.value.trim(); markDirty(); };
+    vi.oninput = () => { term.value = vi.value; markDirty(); };
+    rmT.onclick = () => {
+      when.terms.splice(ti, 1);
+      if (when.terms.length === 0 && onEmpty) return onEmpty();
+      markDirty(); onRender();
+    };
+    box.append(el('div', { className: 'kvrow' }, [fi, el('span', { className: 'eq', textContent: '=' }), vi, rmT]));
+  });
+  const addT = el('button', { className: 'ghost', textContent: '+ condición', style: 'margin-top:6px;font-size:11px' });
+  addT.onclick = () => { when.terms.push({ flag: '', value: '' }); markDirty(); onRender(); };
+  box.append(addT);
+}
+
 function toggleTextVariable(id, on) {
   const step = script.steps[id];
   if (on) {
@@ -676,13 +718,6 @@ function toggleBranch(id, on) {
     const def = Array.isArray(step.next) ? step.next.find((r) => r.when == null) : null;
     step.next = def ? (def.go || '') : (typeof step.next === 'string' ? step.next : '');
   }
-  structuralChange();
-}
-
-function setOptionMode(id, i, mode) {
-  const opt = script.steps[id].options[i];
-  if (mode === 'set') { delete opt.next; opt.set = opt.set || { flag: '' }; }
-  else { delete opt.set; opt.next = ''; }
   structuralChange();
 }
 
@@ -722,31 +757,7 @@ function appendNextEditor(id, step) {
     box.append(headRow);
 
     if (!isDefault) {
-      /* Migra forma legacy {flag:valor} → {op, terms}. */
-      if (!Array.isArray(rule.when.terms)) {
-        const terms = Object.entries(rule.when).map(([flag, value]) => ({ flag, value }));
-        rule.when = { op: 'and', terms: terms.length ? terms : [{ flag: '', value: '' }] };
-      }
-      if (rule.when.terms.length > 1) {
-        const opSel = el('select');
-        opSel.append(el('option', { value: 'and', textContent: 'se cumplen TODAS (y)' }));
-        opSel.append(el('option', { value: 'or', textContent: 'se cumple ALGUNA (o)' }));
-        opSel.value = rule.when.op || 'and';
-        opSel.onchange = () => { rule.when.op = opSel.value; markDirty(); };
-        box.append(opSel);
-      }
-      rule.when.terms.forEach((term, ti) => {
-        const fi = el('input', { value: term.flag || '', placeholder: 'flag', list: 'flagnames' });
-        const vi = el('input', { value: term.value || '', placeholder: 'valor' });
-        const rmT = el('button', { className: 'del', textContent: '✕' });
-        fi.oninput = () => { term.flag = fi.value.trim(); markDirty(); };
-        vi.oninput = () => { term.value = vi.value; markDirty(); };
-        rmT.onclick = () => { rule.when.terms.splice(ti, 1); markDirty(); renderInspector(); };
-        box.append(el('div', { className: 'kvrow' }, [fi, el('span', { className: 'eq', textContent: '=' }), vi, rmT]));
-      });
-      const addT = el('button', { className: 'ghost', textContent: '+ condición', style: 'margin-top:6px;font-size:11px' });
-      addT.onclick = () => { rule.when.terms.push({ flag: '', value: '' }); markDirty(); renderInspector(); };
-      box.append(addT);
+      appendClauseEditor(box, rule, 'when', { onRender: renderInspector });
     }
     box.append(el('span', { className: 'lbl', textContent: 'Va a' }));
     box.append(nextSelect(rule.go, id, (v) => { rule.go = v; structuralChange(); }));
@@ -759,6 +770,7 @@ function appendNextEditor(id, step) {
 }
 
 function renderInspector() {
+  $('#playHere').disabled = !(selected && script.steps[selected]);
   if (!selected || !script.steps[selected]) { inspector.classList.remove('open'); inspector.innerHTML = ''; return; }
   const id = selected, step = script.steps[id], k = kindOf(step);
   inspector.innerHTML = '';
@@ -852,6 +864,7 @@ function renderInspector() {
     'Efectos en el texto:'
     + '<br>· flag: <code>{nombre}</code> inserta el valor'
     + '<br>· pausa: <code>{{600}}</code> ms <span class="dim">(o {{beat}}, {{pause}})</span>'
+    + '<br>· salto de línea: <code>\\n</code>'
     + '<br>· estilo: <code>[[wave accent]]texto[[/]]</code>'
     + '<br>· efectos: <code>wave</code> · colores: <code>accent</code>, <code>cyan</code>, <code>muted</code>, o <code>#hex</code>';
   inspector.append(guide);
@@ -902,17 +915,8 @@ function renderInspector() {
   }
 
   if (k === 'choice') {
-    /* Destino compartido: mientras alguna opción no bifurque, la elección
-       converge a este nodo (un solo cable de salida). */
-    if (step.options.some((o) => !optionBranches(o))) {
-      inspector.append(el('span', { className: 'lbl', textContent: 'Después de elegir, continúa a' }));
-      const cur = typeof step.next === 'string' ? step.next : '';
-      inspector.append(nextSelect(cur, id, (v) => { step.next = v; structuralChange(); }));
-    }
-
     inspector.append(el('span', { className: 'lbl', textContent: 'Opciones' }));
     step.options.forEach((opt, i) => {
-      const branches = optionBranches(opt);
       const rm = el('button', { className: 'del', textContent: '✕' });
       rm.onclick = () => { step.options.splice(i, 1); structuralChange(); };
       const box = el('div', { className: 'opt' }, [
@@ -923,36 +927,37 @@ function renderInspector() {
       labelInput.oninput = () => { opt.label = labelInput.value; markDirty(); };
       box.append(labelInput);
 
-      if (!branches) {
-        /* Caso común: recuerda una flag y sigue al destino compartido. */
-        box.append(el('span', { className: 'lbl', textContent: 'Recuerda' }));
-        box.append(kvEditor(opt.set || (opt.set = {}), '+ flag', () => { markDirty(); renderGraph(); renderInspector(); }));
-        const toBranch = el('button', { className: 'ghost', textContent: '⇗ que esta opción abra otro camino', style: 'margin-top:6px;font-size:11px' });
-        toBranch.onclick = () => setOptionMode(id, i, 'next');
-        box.append(toBranch);
+      box.append(el('span', { className: 'lbl', textContent: 'Va a' }));
+      const destVal = 'next' in opt ? (opt.next || '') : (typeof step.next === 'string' ? step.next : '');
+      box.append(nextSelect(destVal, id, (v) => { opt.next = v; structuralChange(); }));
+
+      if (opt.set && Object.keys(opt.set).length > 0) {
+        box.append(el('span', { className: 'lbl', textContent: 'Guarda' }));
+        box.append(kvEditor(opt.set, '+ flag', () => {
+          if (Object.keys(opt.set).length === 0) delete opt.set;
+          markDirty(); renderGraph(); renderInspector();
+        }));
       } else {
-        box.append(el('span', { className: 'lbl', textContent: 'Abre el camino' }));
-        box.append(nextSelect(opt.next, id, (v) => { opt.next = v; structuralChange(); }));
-        const toFlag = el('button', { className: 'ghost', textContent: '↩ que solo recuerde y converja', style: 'margin-top:6px;font-size:11px' });
-        toFlag.onclick = () => setOptionMode(id, i, 'set');
-        box.append(toFlag);
+        const addF = el('button', { className: 'ghost', textContent: '+ guardar flag', style: 'margin-top:6px;font-size:11px' });
+        addF.onclick = () => { opt.set = { '': '' }; markDirty(); renderInspector(); };
+        box.append(addF);
       }
 
       if (opt.when) {
         box.append(el('span', { className: 'lbl', textContent: 'Mostrar si' }));
-        box.append(kvEditor(opt.when, '+ condición', () => {
-          if (Object.keys(opt.when).length === 0) delete opt.when;
-          markDirty(); renderInspector();
-        }));
+        appendClauseEditor(box, opt, 'when', {
+          onEmpty: () => { delete opt.when; markDirty(); renderInspector(); },
+          onRender: renderInspector,
+        });
       } else {
         const addWhen = el('button', { className: 'ghost', textContent: '+ mostrar si…', style: 'margin-top:6px;font-size:11px' });
-        addWhen.onclick = () => { opt.when = { flag: '' }; markDirty(); renderInspector(); };
+        addWhen.onclick = () => { opt.when = { op: 'and', terms: [{ flag: '', value: '' }] }; markDirty(); renderInspector(); };
         box.append(addWhen);
       }
       inspector.append(box);
     });
     const addOpt = el('button', { textContent: '+ opción', style: 'margin-top:10px' });
-    addOpt.onclick = () => { step.options.push({ label: 'Nueva opción', set: { flag: '' } }); structuralChange(); };
+    addOpt.onclick = () => { step.options.push({ label: 'Nueva opción' }); structuralChange(); };
     inspector.append(addOpt);
 
     if (step.options.length === 0) inspector.append(el('div', { className: 'hint warn', textContent: 'Sin opciones, no puede avanzar.' }));
@@ -1043,11 +1048,13 @@ function parseRichEd(raw) {
         i = end + 2; continue;
       }
     }
+    if (raw.startsWith('\\n', i)) { chars.push({ ch: '\n', wave, color }); i += 2; continue; }
     chars.push({ ch: raw[i], wave, color }); i += 1;
   }
   return { chars, pauses };
 }
 function pvAppendChar(c, idx) {
+  if (c.ch === '\n') { $('#pvText').append(document.createElement('br')); return; }
   let style = c.color ? 'color:' + c.color + ';' : '';
   if (c.wave) style += `animation-delay:${idx * -0.09}s;animation-duration:3.2s;`;
   $('#pvText').append(el('span', {
@@ -1156,6 +1163,33 @@ overlay.onclick = () => {
   else if (k === 'end') pvClose();
 };
 $('#play').onclick = () => { pv.flags = {}; overlay.classList.add('open'); pvType(script.start); };
+
+/* Flags de muestra para "probar desde aquí": para cada flag elegimos un valor
+   que alguien podría haber elegido en el camino. Las que vienen de un `set`
+   (al entrar o por una opción) toman ese valor concreto; las de campo de texto
+   (sin valor enumerado) toman una muestra legible. */
+function defaultFlags() {
+  const flags = {};
+  const consider = (set) => {
+    if (!set) return;
+    for (const [k, v] of Object.entries(set)) if (k && !(k in flags)) flags[k] = v;
+  };
+  for (const s of Object.values(script.steps)) {
+    consider(s.set);
+    if (Array.isArray(s.options)) for (const o of s.options) consider(o.set);
+  }
+  for (const s of Object.values(script.steps)) {
+    const f = s.input && s.input.flag;
+    if (f && !(f in flags)) flags[f] = /nombre|name/i.test(f) ? 'Jugador' : '(' + f + ')';
+  }
+  return flags;
+}
+$('#playHere').onclick = () => {
+  if (!selected || !script.steps[selected]) return;
+  pv.flags = defaultFlags();
+  overlay.classList.add('open');
+  pvType(selected);
+};
 
 applyView();
 load();

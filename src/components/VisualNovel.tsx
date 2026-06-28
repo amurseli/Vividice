@@ -240,7 +240,9 @@ export default function VisualNovel({
       <div className="vn__panel">
         <p className={`vn__text${done && hasOptions ? ' vn__text--lift' : ''}`}>
           {rich.chars.slice(0, revealed).map((c, i) =>
-            c.wave ? (
+            c.ch === '\n' ? (
+              <br key={i} />
+            ) : c.wave ? (
               <span
                 key={i}
                 className="vn__owave"

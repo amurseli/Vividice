@@ -130,6 +130,9 @@
    letra (inline) hace que la onda viaje y queden disparejas. */
 .vn__owave {
   display: inline-block;
+  /* `pre` para que un span que es sólo un espacio no se colapse a cero ancho
+     (los inline-block recortan el whitespace de los bordes). */
+  white-space: pre;
   /* La duración y el desfase los pone WavyText inline (por palabra). */
   animation: vn-wave 3.2s ease-in-out infinite;
 }

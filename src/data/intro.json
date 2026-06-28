@@ -54,7 +54,7 @@
       "next": "7"
     },
     "7": {
-      "text": "Para mí...{{600}} lo más importante de cuaqluier historia, o incluso de cualquier medio, ese su capacidad de cambiar el mundo.",
+      "text": "Para mí...{{600}} lo más importante de cuaqluier historia, o incluso de cualquier medio, es su capacidad de cambiar el mundo.",
       "next": "8"
     },
     "8": {
@@ -118,23 +118,293 @@
         }
       ]
     },
+    "13a-4a-17": {
+      "text": "Por desgracia, o por suerte quizás.\nEl futuro de [[wave cyan]]Vivídice[[/]] está en tus manos."
+    },
+    "13a-4a-16": {
+      "text": {
+        "on": "carta",
+        "cases": {
+          "La Princesa": "Blande la espada de tus antepasados contra malicia y oscuridad."
+        },
+        "default": "Muestra que eres más capaz de [[wave]]protegerla[[/]] que yo.{{1200}}\n[[wave accent]]Sueña el sueño que aún\nqueda por soñar[[/]]"
+      },
+      "next": "13a-4a-17"
+    },
+    "13a-4a-15": {
+      "text": "¿No te gusta? {{1200}}Entonces demúestralo. Fuérzame a dar un paso al costado.",
+      "next": "13a-4a-16"
+    },
+    "13a-4a-14": {
+      "text": "Lo siento. {{600}}Pero debía decírtelo. Eso es lo que las posiblidades aclaman.\n[[wave accent]]Está escrito[[/]]",
+      "next": "13a-4a-15"
+    },
+    "13a-4a-13": {
+      "text": "{{300}}.{{300}}.{{300}}.",
+      "next": "13a-4a-14"
+    },
+    "13a-4a-12": {
+      "text": {
+        "on": "carta",
+        "cases": {
+          "El Antílope": "Tú, que se vaticina Antílope por encima de lo demás, serás la perdición de Reyes. Incluso así, nadie recordará tu nombre. La grandeza que anhelas se escapará a último momento.",
+          "La Heroína": "Tu, que se hace llamar a sí misma \"Heroína\", tendrás la oportunidad de demostrar lo que vales.\nY fallarás intentándolo.",
+          "El Bufón": "Tú, que quiere hacer reír la gente. Te escondes detrás de un semblante sonriente, Bufón. Pero es cuestión de tiempo hasta que sepan lo que en verdad eres.",
+          "El Lobo": "Tú, que muestras los dientes, con la herida carmesí todavía latiente. Un Sol Negro se alza en tu camino, y cuando más creas que no necesitas a nadie, te hallarás solo.",
+          "El Donnadie": "Tú, que te escondes, temeroso de lo que se avecina. Sabé que cuando el mundo te necesite, fallarás. Fallarás y fallarás, deseando volver al escondrijo dónde te encontrás. Naciste de tu asfixiante mediocridad, y morirás en ella.",
+          "El Caudillo": "Tú, cuya sed de sangre languidece. Cuando los tuyos te necesitaban, fallaste, y cuando llegue el momento de defender lo único que te queda, lo harás devuelta.\nHiedes a sangre y vino. Morirás ahogado en ambos.",
+          "El Escriba": "Tú, que asegura portar el arma más potente de todas, la pluma. \nDesubrirás, de la peor manera, que no es así. No hay mucho que los cuentos puedan hacer por los asesinados. Cuando quieras tomar las armas de verdad, será demaisado tarde.",
+          "La Soldado": "Tú, que diste tu vida por el servicio ¿Qué ocurre cuando tus valores entran en conflicto con tu lealtad?\nNunca has sido más que un perro siguiendo a su amo.",
+          "La Princesa": "Tú, con sangre noble. Nunca verás tu trono usurpado. Morirás sola, en una húmeda y oscura celda. Tu linaje terminará contigo."
+        },
+        "default": ""
+      },
+      "next": "13a-4a-13"
+    },
+    "13a-4a-11": {
+      "text": "[[wave accent]]{nombre}[[/]]. Te siento reverberar en el telar del tiempo. Eres una de las incógnitas a despejar. \n¿Tendrás la fuerza necesaria para afrontar lo que viene?",
+      "next": "13a-4a-12"
+    },
+    "13a-4a-10": {
+      "text": "Es ahora cuando debés mantener la [[wave]]frente en alto[[/]]. Un corazón [[wave]]férreo[[/]]. Una voluntad [[wave]]inquebrantable[[/]].",
+      "next": "13a-4a-11"
+    },
+    "13a-4a-9": {
+      "text": "...{{1200}} Bueno, \"protagonismo\" es una palabra fuerte. Pero estuviste ahí. Pudiste haberlo impedido.",
+      "next": "13a-4a-10"
+    },
+    "13a-4a-8": {
+      "text": "Lo protagonizaste.\n{{600}}[[wave red]]{nombre}, {carta}[[/]]",
+      "next": "13a-4a-9"
+    },
+    "13a-4a-7": {
+      "text": "Estuviste ahí, {{600}}¿verdad? {{600}}Ese horrible día.",
+      "next": "13a-4a-8"
+    },
+    "13a-4a-6": {
+      "text": "Este es mundo consumido por la avaricia y el deseo de los pocos.{{600}} Un mundo dónde todos se contentan con sobrevivir, más no soñar.",
+      "next": "13a-4a-7"
+    },
+    "13a-4a-5": {
+      "text": "Ya veo{{300}}.{{300}}.{{300}}.",
+      "next": "13a-4a-6"
+    },
     "13a-4a-3": {
-      "text": "[[wave]]\"Dame el caballo y lo que tengas encima\"[[/]] Te dice.{{300}} Blande una espada que parece sabe usar.\n\n¿Qué hacés?"
+      "text": "Seguramente hayas jugado al [[wave]]Saltamundos[[/]], ¿Cierto? entonces...",
+      "next": "13a-4a-4"
     },
     "13a-4a-2": {
-      "text": "Después de días viajando a caballo solo, te encontrás cara a cara con un asaltante.",
+      "text": "Pero dime...",
       "next": "13a-4a-3"
     },
     "13a-4a-1": {
-      "text": "Ahora, porfavor. {{400}} Imaginemos esto.",
+      "text": "Vivir...{{400}} leal a un rey. Si que se necesita una persona importante para eso ¿No? Alguien que infunda verdadera confianza en los que lo siguen.",
       "next": "13a-4a-2"
     },
+    "13a-4c-2b-6": {
+      "text": "Aunque todavía queda mucho que escribir sobre Sel ¿Verdad?... [[wave]]Ja ja ja[[/]]{{600}}. Pero bueno, dime...",
+      "next": "13a-4a-3"
+    },
+    "13a-4c-2b-5": {
+      "text": "No vivió lo suficiente para ver su sueño de alcanzar las estrellas cumplirse.{{600}} Sin embargo, otros vinieron luego. Se dice que, sin las altas torres Selinas, la Sapiencai no hubiera sobrevivido a la Última Calamidad.",
+      "next": "13a-4c-2b-6"
+    },
+    "13a-4b-5": {
+      "text": "Bien... Dime.",
+      "next": "13a-4a-3"
+    },
+    "13a-4b-4": {
+      "text": "¿Querés responderme ahora?",
+      "options": [
+        {
+          "label": "Si",
+          "set": {
+            "flag": ""
+          },
+          "next": "13a-4b-5"
+        },
+        {
+          "label": "No",
+          "set": {
+            "flag": ""
+          }
+        }
+      ],
+      "next": ""
+    },
+    "13a-4b-3": {
+      "text": "Te lo aseguro...{{600}} tanto días más brillantes como noches más oscuras se avecinan en tu futuro. No es momento de desconfianza.",
+      "next": "13a-4b-4"
+    },
+    "13a-4b-2": {
+      "text": "No confiar siquiera en tus sueños. {{1200}}¿Cómo es vivir con tanta soledad?",
+      "next": "13a-4b-3"
+    },
+    "13a-4b-1": {
+      "text": "Tanta... {{600}}desconfianza. {{600}}Tanto... {{600}} dolor.",
+      "next": "13a-4b-2"
+    },
+    "13a-4c-2b-4": {
+      "text": "Y lo... {{600}} desafió. {{1200}}Constuyó hacia arriba, cientos de metros, superando fácilmente cualquier otra cosa que la sapiencia haya construido jamás.",
+      "next": "13a-4c-2b-5"
+    },
+    "13a-4c-2b-3": {
+      "text": "Con mano dura, constuyó su imperio. Dónde otros hubieran optado por expandir aún más su territorio, tomando los pequeños asentamientos que no tendrían posibilidad de defenderse, Haddar miró al cielo.",
+      "next": "13a-4c-2b-4"
+    },
+    "13a-4a-4": {
+      "text": "¿Cuál es la carta que más te representa de todas?",
+      "options": [
+        {
+          "label": "La Soldado",
+          "set": {
+            "carta": "La Soldado"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "El Bufón",
+          "set": {
+            "carta": "El Bufón"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "La Heroína",
+          "set": {
+            "carta": "La Heroína"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "El Lobo",
+          "set": {
+            "carta": "El Lobo"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "El Antílope",
+          "set": {
+            "carta": "El Antílope"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "El Donnadie",
+          "set": {
+            "carta": "El Donnadie"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "El Escriba",
+          "set": {
+            "carta": "El Escriba"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "El Caudillo",
+          "set": {
+            "carta": "El Caudillo"
+          },
+          "next": "13a-4a-5"
+        },
+        {
+          "label": "La Princesa",
+          "set": {
+            "carta": "La Princesa"
+          },
+          "next": "13a-4a-5",
+          "when": {
+            "op": "or",
+            "terms": [
+              {
+                "flag": "nombre",
+                "value": "leti"
+              },
+              {
+                "flag": "nombre",
+                "value": "Leti"
+              },
+              {
+                "flag": "nombre",
+                "value": "Leticia"
+              },
+              {
+                "flag": "nombre",
+                "value": "Ashe"
+              },
+              {
+                "flag": "nombre",
+                "value": "Nemeia"
+              },
+              {
+                "flag": "nombre",
+                "value": "Liaab"
+              },
+              {
+                "flag": "nombre",
+                "value": "Tallarín"
+              },
+              {
+                "flag": "nombre",
+                "value": "talla"
+              },
+              {
+                "flag": "nombre",
+                "value": "tallarin"
+              },
+              {
+                "flag": "nombre",
+                "value": "tallarín"
+              },
+              {
+                "flag": "nombre",
+                "value": "tallarin"
+              },
+              {
+                "flag": "nombre",
+                "value": "Princesa"
+              },
+              {
+                "flag": "nombre",
+                "value": "la princesa"
+              },
+              {
+                "flag": "nombre",
+                "value": "La princesa"
+              },
+              {
+                "flag": "nombre",
+                "value": "La Princesa"
+              },
+              {
+                "flag": "nombre",
+                "value": "princesa"
+              },
+              {
+                "flag": "nombre",
+                "value": "La princesa Ashe"
+              },
+              {
+                "flag": "nombre",
+                "value": "La Princesa Ashe"
+              }
+            ]
+          }
+        }
+      ],
+      "next": ""
+    },
     "13a-4c-2a": {
-      "text": "Claro que lo haces. Cualquier persona de [[wave cyan]]Vivídice[[/]]{{600}} ha oído hablar de él. ",
+      "text": "Claro que lo haces. \nCualquier persona de [[wave cyan]]Vivídice[[/]]{{600}} ha oído hablar de él. ",
       "next": "13a-4a-1"
     },
     "13a-4c-2b-2": {
-      "text": "No era oriundo de la actual Sel, pero sí que  la conquistó. Vió allí un potencial inimaginable. Un lugar donde plasmar su{{600}} [[wave accent]]l{{200}}e{{200}}g{{200}}a{{200}}d{{200}}o[[/]]. "
+      "text": "No era oriundo de la actual Sel, pero sí que  la conquistó. Vió allí un potencial inimaginable. Un lugar donde plasmar su{{600}} [[wave accent]]l{{200}}e{{200}}g{{200}}a{{200}}d{{200}}o[[/]]. ",
+      "next": "13a-4c-2b-3"
     },
     "13a-4c-2b-1": {
       "text": "Había una vez un [[wave cyan]]rey[[/]]: el [[accent]]Rey Haddar[[/]].",
@@ -163,22 +433,8 @@
       "next": "13a-4c-1"
     },
     "13a-4b": {
-      "text": "¿Por qué? {{1200}} No necesitas responderme. Si querés, podés preguntarme a algo a mí.",
-      "options": [
-        {
-          "label": "Opción A",
-          "set": {
-            "flag": ""
-          }
-        },
-        {
-          "label": "Opción B",
-          "set": {
-            "flag": ""
-          }
-        }
-      ],
-      "next": ""
+      "text": "...",
+      "next": "13a-4b-1"
     },
     "13a-4a": {
       "text": {
@@ -218,7 +474,13 @@
             "atributo": "nada"
           },
           "when": {
-            "nombre": "Haddar"
+            "op": "and",
+            "terms": [
+              {
+                "flag": "nombre",
+                "value": "Haddar"
+              }
+            ]
           },
           "next": "13a-4c"
         }

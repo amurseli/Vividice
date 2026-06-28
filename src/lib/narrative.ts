@@ -25,8 +25,9 @@ export type Option = {
      Si no, setea `set` y converge al `next` del step (elección con flag). */
   next?: string | null;
   set?: Record<string, string>;
-  /* La opción sólo se muestra cuando matchea (opciones condicionales). */
-  when?: Cond;
+  /* La opción sólo se muestra cuando matchea (opciones condicionales).
+     Objeto legacy {flag:valor} (AND) o cláusula {op, terms} (AND/OR). */
+  when?: AnyCond;
 };
 
 /* `next` puede ser un id fijo o una lista de reglas: la primera que matchea
@@ -92,6 +93,7 @@ export function interpolate(text: string, flags: Flags): string {
    Sintaxis:
      {{600}}                 pausa de 600ms en el tipeo (alias: {{beat}}, {{pause}})
      [[wave accent]]X[[/]]   X con onda y color; tokens = efectos + un color
+     \n                      salto de línea (también vale un salto real)
    Colores: nombres de paleta o hex (#rrggbb). */
 const RICH_COLORS: Record<string, string> = {
   accent: 'var(--color-accent)',
@@ -139,6 +141,14 @@ export function parseRich(raw: string): Rich {
         i = end + 2;
         continue;
       }
+    }
+    /* Salto de línea: el `\n` literal que se escribe en el texto. (Un salto
+       real ya entra como '\n' por el caso de abajo.) Se marca como char '\n'
+       y el render lo convierte en <br>. */
+    if (raw.startsWith('\\n', i)) {
+      chars.push({ ch: '\n', wave, color });
+      i += 2;
+      continue;
     }
     chars.push({ ch: raw[i], wave, color });
     i += 1;
