@@ -296,31 +296,6 @@
   }
 }
 
-/*
-  Botón de skip: flechita en la esquina superior derecha. Casi invisible
-  en reposo, se revela al pasar el mouse. Salta toda la intro -> skipHref.
-*/
-.vn__skip {
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-5);
-  z-index: 2;
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--color-text-muted);
-  text-decoration: none;
-  opacity: 0.18;
-  transition: opacity 200ms ease, color 200ms ease, transform 200ms ease;
-  cursor: pointer;
-}
-
-.vn__skip:hover {
-  opacity: 1;
-  color: var(--color-accent);
-  transform: translateX(3px);
-  text-decoration: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .vn__char {
     animation: none;

@@ -232,15 +232,6 @@ export default function VisualNovel({
       onClick={handleAdvance}
       role="presentation"
     >
-      <a
-        className="vn__skip"
-        href={skipHref}
-        aria-label="Saltear introducción"
-        onClick={(e) => e.stopPropagation()}
-      >
-        →
-      </a>
-
       <div className="vn__panel">
         <p className={`vn__text${done && hasOptions ? ' vn__text--lift' : ''}`}>
           {rich.chars.slice(0, revealed).map((c, i) =>

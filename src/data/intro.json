@@ -115,8 +115,54 @@
             ]
           },
           "go": "13c"
+        },
+        {
+          "when": {
+            "op": "or",
+            "terms": [
+              {
+                "flag": "nombre",
+                "value": "Firme"
+              },
+              {
+                "flag": "nombre",
+                "value": "Firme de Sel"
+              },
+              {
+                "flag": "nombre",
+                "value": "Firme de Sel I"
+              }
+            ]
+          },
+          "go": "13d"
+        },
+        {
+          "when": {
+            "op": "or",
+            "terms": [
+              {
+                "flag": "nombre",
+                "value": "Príncipe Delothar Alunado"
+              },
+              {
+                "flag": "nombre",
+                "value": "Delothar"
+              },
+              {
+                "flag": "nombre",
+                "value": "Delothar Alunado"
+              }
+            ]
+          },
+          "go": "13e"
         }
       ]
+    },
+    "13e": {
+      "text": "Eso...{{600}} No creo que sea posible. \nHan pasado 3 años desde tu muerte.\nEs momento de despertar."
+    },
+    "13d": {
+      "text": "Oh... ¿Entonces que hacés acá? Obvtuviste lo que querías, ¿No? Despiértate, tienes una pila de cenizas que gobernar"
     },
     "13a-4a-17": {
       "text": "Por desgracia, o por suerte quizás.\nEl futuro de [[wave cyan]]Vivídice[[/]] está en tus manos."
