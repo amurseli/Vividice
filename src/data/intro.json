@@ -70,7 +70,7 @@
       "next": "11"
     },
     "11": {
-      "text": "Quizás \"propósito\" no sea la palabra indicada, pero dejámelo pasar, ¿Dale? [[wave]]Ja ja ja[[/]].",
+      "text": "Quizás \"propósito\" no sea la palabra indicada, pero déjamelo pasar, ¿Dale? [[wave]]Ja ja ja[[/]].",
       "next": "12"
     },
     "12": {
@@ -157,6 +157,12 @@
           "go": "13e"
         }
       ]
+    },
+    "13a-4b-5b": {
+      "text": "{{600}}Bien. No hay más que decir entonces.",
+      "set": {
+        "Responde": "NO"
+      }
     },
     "13e": {
       "text": "Eso...{{600}} No creo que sea posible. \nHan pasado 3 años desde tu muerte.\nEs momento de despertar."
@@ -255,7 +261,7 @@
       "text": "No vivió lo suficiente para ver su sueño de alcanzar las estrellas cumplirse.{{600}} Sin embargo, otros vinieron luego. Se dice que, sin las altas torres Selinas, la Sapiencai no hubiera sobrevivido a la Última Calamidad.",
       "next": "13a-4c-2b-6"
     },
-    "13a-4b-5": {
+    "13a-4b-5a": {
       "text": "Bien... Dime.",
       "next": "13a-4a-3"
     },
@@ -265,15 +271,16 @@
         {
           "label": "Si",
           "set": {
-            "flag": ""
+            "responde": "Si"
           },
-          "next": "13a-4b-5"
+          "next": "13a-4b-5a"
         },
         {
           "label": "No",
           "set": {
-            "flag": ""
-          }
+            "responde": "No"
+          },
+          "next": "13a-4b-5b"
         }
       ],
       "next": ""
