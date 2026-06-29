@@ -1047,9 +1047,29 @@ document.addEventListener('keydown', (e) => {
 });
 
 const overlay = $('#overlay');
-let pv = { id: null, rich: { chars: [], pauses: {} }, typing: false, timer: 0, flags: {} };
+/* Igual que el juego real: al terminar fundimos a negro durante PV_FADE (ms). */
+const PV_FADE = 5000;
+let pv = { id: null, rich: { chars: [], pauses: {} }, typing: false, timer: 0, flags: {}, fading: false };
 function pvStop() { clearTimeout(pv.timer); pv.typing = false; }
-function pvClose() { pvStop(); pvMusic('none'); overlay.classList.remove('open'); }
+function pvClose() {
+  pvStop(); pvMusic('none'); overlay.classList.remove('open');
+  pv.fading = false;
+  const box = $('.pv');
+  if (box) { box.style.transition = ''; box.style.opacity = ''; }
+}
+/* Fin de la novela: el contenido y la música se desvanecen lentamente sobre el
+   fondo negro del overlay; al terminar el fundido, cerramos. */
+function pvEnd() {
+  if (pv.fading) return;
+  pv.fading = true;
+  pvStop();
+  if (pvAudio) pvFadeAudio(pvAudio, pvAudio.volume, 0, PV_FADE, () => { try { pvAudio.pause(); } catch {} pvAudio = null; pvMusicTrack = null; });
+  const box = $('.pv');
+  box.style.transition = `opacity ${PV_FADE}ms ease`;
+  void box.offsetWidth;   // fuerza el reflow para que el transition arranque
+  box.style.opacity = '0';
+  pv.timer = setTimeout(pvClose, PV_FADE + 60);
+}
 
 /* ── Música del preview (crossfade con <audio>, espejo del juego real) ── */
 const PV_MUS_FADE = 1800, PV_MUS_VOL = 0.5;
@@ -1152,9 +1172,13 @@ function pvNext(next) {
   }
   return fallback;
 }
-function pvGo(dest) { (dest && script.steps[dest]) ? pvType(dest) : pvClose(); }
+function pvGo(dest) { (dest && script.steps[dest]) ? pvType(dest) : pvEnd(); }
 function pvType(id) {
   pvStop();
+  /* Por si reabrimos mientras un fundido de fin seguía en curso. */
+  pv.fading = false;
+  const box = $('.pv');
+  if (box) { box.style.transition = ''; box.style.opacity = ''; }
   const step = script.steps[id];
   if (!step) return pvClose();
   pvMusic(step.music);
@@ -1222,11 +1246,12 @@ function pvDone(id) {
   } else after.append(el('div', { className: 'pv__arrow', textContent: k === 'next' ? '↓' : '— fin —' }));
 }
 overlay.onclick = () => {
+  if (pv.fading) return;
   if (pv.typing) return pvComplete();
   const step = script.steps[pv.id]; if (!step) return pvClose();
   const k = kindOf(step);
   if (k === 'next') pvGo(pvNext(step.next));
-  else if (k === 'end') pvClose();
+  else if (k === 'end') pvEnd();
 };
 $('#play').onclick = () => { pv.flags = {}; overlay.classList.add('open'); pvType(script.start); };
 

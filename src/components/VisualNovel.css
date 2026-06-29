@@ -296,6 +296,23 @@
   }
 }
 
+/* Velo de fin de la novela: arranca transparente y se opaca a negro sobre
+   todo (texto, opciones, fondo) antes de redirigir. La duración real la fija
+   el componente por estilo inline (END_FADE) para que coincida con el timer. */
+.vn__fade {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 5s ease;
+}
+.vn__fade--on {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vn__char {
     animation: none;

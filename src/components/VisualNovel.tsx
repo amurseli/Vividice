@@ -19,6 +19,10 @@ const START_DELAY = 3000;
    terminó de aparecer: no se puede avanzar ni elegir hasta que pase. */
 const READY_DELAY = 1000;
 
+/* Al terminar la novela fundimos a negro durante este tiempo (ms) antes de
+   redirigir, en vez de cortar de golpe. La música se desvanece a la par. */
+const END_FADE = 5000;
+
 /* Texto donde cada letra oscila en una onda senoidal lenta. `dur` cambia la
    velocidad y `phase` desfasa la onda (para desincronizar varias palabras).
    Reutilizable: opciones, el nombre y lo que venga. */
@@ -76,6 +80,8 @@ export default function VisualNovel({
   /* ready=true recién READY_DELAY después de done: hasta entonces el step
      es ineskippeable (no avanza, no muestra opciones ni flecha). */
   const [ready, setReady] = useState(false);
+  /* Cuando la novela termina, fundimos a negro durante END_FADE antes de salir. */
+  const [fading, setFading] = useState(false);
   /* Sólo el primer step espera START_DELAY; los siguientes arrancan ya. */
   const firstRun = useRef(true);
   /* La recolección se envía una sola vez por partida. */
@@ -253,9 +259,14 @@ export default function VisualNovel({
 
   const goTo = (next: string | null | undefined, withFlags: Flags = liveFlags) => {
     if (!next || !script.steps[next]) {
-      /* Sin destino válido = fin de la novela: recolectamos y salimos. */
+      /* Sin destino válido = fin de la novela: recolectamos, fundimos a negro
+         (la música se desvanece a la par) y recién entonces redirigimos. */
+      if (fading) return;
+      setFading(true);
       collect(withFlags);
-      window.location.href = skipHref;
+      const howl = howlRef.current as any;
+      try { howl?.fade(howl.volume(), 0, END_FADE); } catch {}
+      window.setTimeout(() => { window.location.href = skipHref; }, END_FADE);
       return;
     }
     setCurrentId(next);
@@ -440,6 +451,13 @@ export default function VisualNovel({
           ))}
         </ul>
       )}
+
+      {/* Velo de fin: se opaca lentamente hasta cubrir todo antes de redirigir. */}
+      <div
+        className={`vn__fade${fading ? ' vn__fade--on' : ''}`}
+        style={{ transitionDuration: `${END_FADE}ms` }}
+        aria-hidden="true"
+      />
     </section>
   );
 }
