@@ -1,11 +1,12 @@
 import { createServer } from 'node:http';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = resolve(here, '..', 'src', 'data', 'intro.json');
 const HTML_PATH = resolve(here, 'intro-editor.html');
+const MUSIC_DIR = resolve(here, '..', 'public', 'music');
 const PORT = Number(process.env.PORT) || 4330;
 
 function looksLikeScript(v) {
@@ -39,6 +40,36 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/api/script') {
       const raw = await readFile(SCRIPT_PATH, 'utf8');
       return send(res, 200, raw);
+    }
+
+    /* Lista de temas disponibles (basenames sin .mp3) en public/music. */
+    if (req.method === 'GET' && req.url === '/api/music') {
+      let files = [];
+      try {
+        files = (await readdir(MUSIC_DIR))
+          .filter((f) => f.toLowerCase().endsWith('.mp3'))
+          .map((f) => f.replace(/\.mp3$/i, ''));
+      } catch {
+        /* sin carpeta o vacía: lista vacía */
+      }
+      return send(res, 200, JSON.stringify(files));
+    }
+
+    /* Sirve los mp3 de public/music para el preview (sólo basename, sin subir
+       de directorio). */
+    if (req.method === 'GET' && req.url.startsWith('/music/')) {
+      const name = decodeURIComponent(req.url.slice('/music/'.length).split('?')[0]);
+      if (name.includes('/') || name.includes('\\') || name.includes('..') ||
+          !name.toLowerCase().endsWith('.mp3')) {
+        return send(res, 404, JSON.stringify({ error: 'not found' }));
+      }
+      try {
+        const buf = await readFile(resolve(MUSIC_DIR, name));
+        res.writeHead(200, { 'content-type': 'audio/mpeg', 'content-length': buf.length });
+        return res.end(buf);
+      } catch {
+        return send(res, 404, JSON.stringify({ error: 'not found' }));
+      }
     }
 
     if (req.method === 'PUT' && req.url === '/api/script') {

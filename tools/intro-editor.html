@@ -167,6 +167,7 @@
 </div>
 
 <datalist id="flagnames"></datalist>
+<datalist id="musicnames"></datalist>
 
 <div id="overlay" class="overlay">
   <span class="pv__close">esc para cerrar</span>
@@ -240,6 +241,16 @@ function refreshFlagList() {
   const dl = $('#flagnames');
   dl.innerHTML = '';
   for (const f of allFlags()) dl.append(el('option', { value: f }));
+}
+/* Temas disponibles en public/music (para autocompletar el campo Música). */
+async function refreshMusicList() {
+  try {
+    const res = await fetch('/api/music');
+    const names = await res.json();
+    const dl = $('#musicnames');
+    dl.innerHTML = '';
+    for (const n of names) dl.append(el('option', { value: n }));
+  } catch { /* sin música, no pasa nada */ }
 }
 /* Opciones-flag de todo el guion que convergen en `id`. Da los "inputs" del
    nodo: cada una aporta {flag, value, label} para derivar un texto por elección. */
@@ -324,6 +335,7 @@ async function load() {
   selected = null;
   dirty = renamed;
   refreshFlagList();
+  refreshMusicList();
   renderGraph();
   renderInspector();
   setStatus(renamed ? 'cargado · ids renumerados (guardá para fijar)' : 'cargado', renamed ? '' : 'ok');
@@ -877,6 +889,16 @@ function renderInspector() {
     + '<br>· efectos: <code>wave</code> · colores: <code>accent</code>, <code>cyan</code>, <code>muted</code>, o <code>#hex</code>';
   inspector.append(guide);
 
+  inspector.append(el('span', { className: 'lbl', textContent: 'Música al entrar' }));
+  const musInp = el('input', { value: step.music ?? '', placeholder: 'tema (sin .mp3) · vacío = sin cambio', list: 'musicnames' });
+  musInp.oninput = () => {
+    const v = musInp.value.trim();
+    if (v) step.music = v; else delete step.music;
+    markDirty(); updateNodeText(id);
+  };
+  inspector.append(musInp);
+  inspector.append(el('div', { className: 'hint', textContent: 'Cambia de tema (con fundido) al entrar. Vacío = no toca la música. "none" = la corta.' }));
+
   inspector.append(el('span', { className: 'lbl', textContent: 'Flags al entrar' }));
   if (!step.set || Object.keys(step.set).length === 0) {
     const addSet = el('button', { className: 'ghost', textContent: '+ setear flag al entrar', style: 'font-size:11px' });
@@ -1027,7 +1049,34 @@ document.addEventListener('keydown', (e) => {
 const overlay = $('#overlay');
 let pv = { id: null, rich: { chars: [], pauses: {} }, typing: false, timer: 0, flags: {} };
 function pvStop() { clearTimeout(pv.timer); pv.typing = false; }
-function pvClose() { pvStop(); overlay.classList.remove('open'); }
+function pvClose() { pvStop(); pvMusic('none'); overlay.classList.remove('open'); }
+
+/* ── Música del preview (crossfade con <audio>, espejo del juego real) ── */
+const PV_MUS_FADE = 1800, PV_MUS_VOL = 0.5;
+let pvAudio = null, pvMusicTrack = null;
+function pvFadeAudio(a, from, to, ms, done) {
+  const steps = 30, dt = Math.max(16, ms / steps);
+  let i = 0; a.volume = Math.max(0, Math.min(1, from));
+  const id = setInterval(() => {
+    i++; a.volume = Math.max(0, Math.min(1, from + (to - from) * (i / steps)));
+    if (i >= steps) { clearInterval(id); if (done) done(); }
+  }, dt);
+}
+/* m === undefined → no toca; "none"/"stop"/"" → corta; otro → cambia de tema. */
+function pvMusic(m) {
+  if (m === undefined) return;
+  const next = (!m || m === 'none' || m === 'stop') ? null : m;
+  if (next === pvMusicTrack) return;
+  pvMusicTrack = next;
+  const prev = pvAudio;
+  if (prev) pvFadeAudio(prev, prev.volume, 0, PV_MUS_FADE, () => { try { prev.pause(); } catch {} });
+  if (!next) { pvAudio = null; return; }
+  const a = new Audio('/music/' + encodeURIComponent(next) + '.mp3');
+  a.loop = true; a.volume = 0;
+  a.play().catch(() => {});
+  pvFadeAudio(a, 0, PV_MUS_VOL, PV_MUS_FADE);
+  pvAudio = a;
+}
 
 /* Parser de texto enriquecido (espejo de narrative.ts): {{ms}} y [[wave color]]…[[/]]. */
 const PV_COLORS = { accent: 'var(--accent)', cyan: 'var(--accent-2)', muted: 'var(--muted)', text: 'var(--text)' };
@@ -1108,6 +1157,7 @@ function pvType(id) {
   pvStop();
   const step = script.steps[id];
   if (!step) return pvClose();
+  pvMusic(step.music);
   if (step.set) Object.assign(pv.flags, step.set);
   pv.id = id; pv.rich = parseRichEd(pvText(step));
   $('#pvText').innerHTML = ''; $('#pvAfter').innerHTML = '';

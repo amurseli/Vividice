@@ -46,7 +46,21 @@ export type Step = {
   set?: Record<string, string>;
   /* Si está, el step pide texto libre (continúa a `next` al confirmar). */
   input?: InputSpec;
+  /* Música: al entrar a este step se cambia (con crossfade) al tema indicado.
+     Es un id que resuelve a /music/<id>.mp3. Los steps sin este campo no tocan
+     la música (sigue sonando la actual). Un valor "none"/"stop" la corta. */
+  music?: string;
 };
+
+/* ¿El valor de `music` significa "cortar la música"? */
+export function isMusicStop(music: string): boolean {
+  return music === '' || music === 'none' || music === 'stop';
+}
+
+/* URL del tema a partir de su id (encodeado por si tiene espacios/símbolos). */
+export function musicSrc(id: string): string {
+  return `/music/${encodeURIComponent(id)}.mp3`;
+}
 
 export type Script = { start: string; steps: Record<string, Step> };
 

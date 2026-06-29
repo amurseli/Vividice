@@ -3,7 +3,8 @@
   "steps": {
     "1": {
       "text": "Oh.{{600}}.{{600}}.{{600}} ¡Hola!",
-      "next": "2"
+      "next": "2",
+      "music": "eternal-winter"
     },
     "2": {
       "text": "Han pasado... {{600}}años desde la última vez que [[wave]]llovió[[/]] así, ¿Verdad?",
@@ -158,6 +159,26 @@
         }
       ]
     },
+    "13a-4a-10c": {
+      "text": "{{1000}}.{{1000}}.{{1000}}.{{1000}}\nNo sirve de nada negar lo inevitable.\nNo puede uno esconderse de esto.",
+      "next": "13a-4a-10a-1"
+    },
+    "13a-4a-10b": {
+      "text": "No sirve de nada mentirme.{{600}}\nSé que [[wave accent]]estuviste ahí[[/]]",
+      "next": "13a-4a-10a-1"
+    },
+    "13a-4a-10a": {
+      "text": "Lo sabía...",
+      "next": "13a-4a-10a-1"
+    },
+    "13a-4a-7": {
+      "text": "Creo que es momento de dejar esta farsa.\nEscúchame atentamente, {nombre}",
+      "next": "13a-4a-8"
+    },
+    "13a-4a-6": {
+      "text": "...",
+      "next": "13a-4a-7"
+    },
     "13a-4b-5b": {
       "text": "{{600}}Bien. No hay más que decir entonces.",
       "set": {
@@ -170,10 +191,10 @@
     "13d": {
       "text": "Oh... ¿Entonces que hacés acá? Obvtuviste lo que querías, ¿No? Despiértate, tienes una pila de cenizas que gobernar"
     },
-    "13a-4a-17": {
+    "13a-4a-10a-10": {
       "text": "Por desgracia, o por suerte quizás.\nEl futuro de [[wave cyan]]Vivídice[[/]] está en tus manos."
     },
-    "13a-4a-16": {
+    "13a-4a-10a-9": {
       "text": {
         "on": "carta",
         "cases": {
@@ -181,21 +202,21 @@
         },
         "default": "Muestra que eres más capaz de [[wave]]protegerla[[/]] que yo.{{1200}}\n[[wave accent]]Sueña el sueño que aún\nqueda por soñar[[/]]"
       },
-      "next": "13a-4a-17"
+      "next": "13a-4a-10a-10"
     },
-    "13a-4a-15": {
+    "13a-4a-10a-8": {
       "text": "¿No te gusta? {{1200}}Entonces demúestralo. Fuérzame a dar un paso al costado.",
-      "next": "13a-4a-16"
+      "next": "13a-4a-10a-9"
     },
-    "13a-4a-14": {
+    "13a-4a-10a-7": {
       "text": "Lo siento. {{600}}Pero debía decírtelo. Eso es lo que las posiblidades aclaman.\n[[wave accent]]Está escrito[[/]]",
-      "next": "13a-4a-15"
+      "next": "13a-4a-10a-8"
     },
-    "13a-4a-13": {
+    "13a-4a-10a-6": {
       "text": "{{300}}.{{300}}.{{300}}.",
-      "next": "13a-4a-14"
+      "next": "13a-4a-10a-7"
     },
-    "13a-4a-12": {
+    "13a-4a-10a-5": {
       "text": {
         "on": "carta",
         "cases": {
@@ -211,31 +232,45 @@
         },
         "default": ""
       },
-      "next": "13a-4a-13"
+      "next": "13a-4a-10a-6"
     },
-    "13a-4a-11": {
+    "13a-4a-10a-4": {
       "text": "[[wave accent]]{nombre}[[/]]. Te siento reverberar en el telar del tiempo. Eres una de las incógnitas a despejar. \n¿Tendrás la fuerza necesaria para afrontar lo que viene?",
-      "next": "13a-4a-12"
+      "next": "13a-4a-10a-5"
     },
-    "13a-4a-10": {
+    "13a-4a-10a-3": {
       "text": "Es ahora cuando debés mantener la [[wave]]frente en alto[[/]]. Un corazón [[wave]]férreo[[/]]. Una voluntad [[wave]]inquebrantable[[/]].",
-      "next": "13a-4a-11"
+      "next": "13a-4a-10a-4"
+    },
+    "13a-4a-10a-2": {
+      "text": "...{{1200}} Bueno, \"protagonismo\" es una palabra fuerte. Pero estuviste ahí. Pudiste haberlo impedido.",
+      "next": "13a-4a-10a-3"
+    },
+    "13a-4a-10a-1": {
+      "text": "Lo protagonizaste.\n{{600}}[[wave red]]{nombre}, {carta}[[/]]",
+      "next": "13a-4a-10a-2"
     },
     "13a-4a-9": {
-      "text": "...{{1200}} Bueno, \"protagonismo\" es una palabra fuerte. Pero estuviste ahí. Pudiste haberlo impedido.",
-      "next": "13a-4a-10"
+      "text": "Estuviste ahí, {{600}}¿verdad? {{600}}Ese horrible día.",
+      "options": [
+        {
+          "label": "Estuve ahí",
+          "next": "13a-4a-10a"
+        },
+        {
+          "label": "No, no estuve ahí",
+          "next": "13a-4a-10b"
+        },
+        {
+          "label": "No sé de qué estas hablando",
+          "next": "13a-4a-10c"
+        }
+      ],
+      "next": ""
     },
     "13a-4a-8": {
-      "text": "Lo protagonizaste.\n{{600}}[[wave red]]{nombre}, {carta}[[/]]",
-      "next": "13a-4a-9"
-    },
-    "13a-4a-7": {
-      "text": "Estuviste ahí, {{600}}¿verdad? {{600}}Ese horrible día.",
-      "next": "13a-4a-8"
-    },
-    "13a-4a-6": {
       "text": "Este es un mundo consumido por la avaricia y el deseo de los pocos.{{600}} Un mundo dónde todos se contentan con sobrevivir, más no soñar.",
-      "next": "13a-4a-7"
+      "next": "13a-4a-9"
     },
     "13a-4a-5": {
       "text": "Ya veo{{300}}.{{300}}.{{300}}.",
@@ -243,7 +278,8 @@
     },
     "13a-4a-3": {
       "text": "Seguramente hayas jugado al [[wave]]Saltamundos[[/]], ¿Cierto? entonces...",
-      "next": "13a-4a-4"
+      "next": "13a-4a-4",
+      "music": "taliyah"
     },
     "13a-4a-2": {
       "text": "Pero dime...",

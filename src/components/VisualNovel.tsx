@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Flags, Option, Script, Step } from '../lib/narrative';
-import { parseRich, resolveNext, resolveText, visibleOptions } from '../lib/narrative';
+import {
+  isMusicStop,
+  musicSrc,
+  parseRich,
+  resolveNext,
+  resolveText,
+  visibleOptions,
+} from '../lib/narrative';
 import './VisualNovel.css';
 
 /* Pausa inicial (ms) antes de que aparezca el primer texto: unos segundos
@@ -44,6 +51,12 @@ type Props = {
   /* Access key de Web3Forms: si está, al terminar la intro se envían las flags
      (nombre + elecciones). Si no, no se recolecta nada. */
   collectKey?: string;
+  /* Volumen de la música (0–1) y duración del crossfade entre temas (ms). */
+  musicVolume?: number;
+  musicFade?: number;
+  /* Si está, pide pantalla completa en el primer click (los navegadores no
+     permiten forzarla sin un gesto del usuario). */
+  fullscreen?: boolean;
 };
 
 export default function VisualNovel({
@@ -51,6 +64,9 @@ export default function VisualNovel({
   skipHref,
   typeSpeed = 32,
   collectKey,
+  musicVolume = 0.5,
+  musicFade = 1800,
+  fullscreen = true,
 }: Props) {
   const [currentId, setCurrentId] = useState(script.start);
   const [flags, setFlags] = useState<Flags>({});
@@ -66,6 +82,13 @@ export default function VisualNovel({
   const sent = useRef(false);
   /* Input oculto que captura el tipeo del nombre. */
   const inputRef = useRef<HTMLInputElement>(null);
+  /* Pantalla completa: se pide una sola vez, en el primer click. */
+  const fsAsked = useRef(false);
+  /* Tema musical activo (id que resuelve a /music/<id>.mp3, o null = silencio).
+     Sólo cambia cuando un step trae el campo `music`. */
+  const [track, setTrack] = useState<string | null>(null);
+  /* Instancia Howl que suena ahora (para crossfadearla cuando cambie el tema). */
+  const howlRef = useRef<unknown>(null);
 
   /* Al cambiar de step, reseteamos en el render (no en un efecto) para que el
      frame nuevo nunca herede el `ready` del step anterior: sin ese reset, un
@@ -155,6 +178,52 @@ export default function VisualNovel({
     return () => window.clearTimeout(id);
   }, [done]);
 
+  /* Al entrar a un step con campo `music`, fijamos el tema deseado. Los steps
+     sin el campo no lo tocan (sigue el actual). "none"/"stop"/"" = silencio. */
+  useEffect(() => {
+    const m = script.steps[currentId]?.music;
+    if (m === undefined) return;
+    setTrack(isMusicStop(m) ? null : m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentId]);
+
+  /* Reproductor: cuando cambia el tema deseado, crossfadeamos. Howler se
+     importa dinámico (sólo en cliente) y reproduce en loop. */
+  useEffect(() => {
+    let cancelled = false;
+    const fadeOutStop = (howl: any) => {
+      if (!howl) return;
+      try {
+        howl.fade(howl.volume(), 0, musicFade);
+        window.setTimeout(() => { try { howl.stop(); howl.unload(); } catch {} }, musicFade + 80);
+      } catch {}
+    };
+    (async () => {
+      const { Howl } = await import('howler');
+      if (cancelled) return;
+      const prev = howlRef.current as any;
+      if (!track) {
+        fadeOutStop(prev);
+        howlRef.current = null;
+        return;
+      }
+      const next = new Howl({ src: [musicSrc(track)], loop: true, volume: 0, html5: false });
+      next.play();
+      next.fade(0, musicVolume, musicFade);
+      howlRef.current = next;
+      fadeOutStop(prev);
+    })();
+    return () => { cancelled = true; };
+  }, [track, musicVolume, musicFade]);
+
+  /* Al desmontar, frenamos lo que esté sonando. */
+  useEffect(() => {
+    return () => {
+      const howl = howlRef.current as any;
+      try { howl?.stop(); howl?.unload(); } catch {}
+    };
+  }, []);
+
   /* Envía nombre + flags a Web3Forms al terminar (una vez, fire-and-forget con
      keepalive para que sobreviva a la navegación). */
   const collect = (finalFlags: Flags) => {
@@ -196,7 +265,22 @@ export default function VisualNovel({
     if (options.length || step?.input) return;
     goTo(resolveNext(step?.next, liveFlags));
   };
+  /* Primer click: pide pantalla completa (única forma permitida — con gesto).
+     Después delega en handleAdvance. */
+  const enterFullscreenOnce = () => {
+    if (!fullscreen || fsAsked.current) return;
+    fsAsked.current = true;
+    const el = document.documentElement;
+    if (el.requestFullscreen && !document.fullscreenElement) {
+      el.requestFullscreen().catch(() => {});
+    }
+  };
+  const handleStageClick = () => {
+    enterFullscreenOnce();
+    handleAdvance();
+  };
   const choose = (opt: Option) => {
+    enterFullscreenOnce();
     /* Las flags de la opción deben estar disponibles para resolver el destino
        convergente, así que las calculamos antes de navegar. */
     const nf = opt.set ? { ...liveFlags, ...opt.set } : liveFlags;
@@ -213,6 +297,7 @@ export default function VisualNovel({
   const draftOk = draft.trim().length >= min && draft.length <= max;
   const submitInput = () => {
     if (!input || !draftOk) return;
+    enterFullscreenOnce();
     const nf = { ...liveFlags, [input.flag]: draft.trim() };
     setFlags(nf);
     goTo(resolveNext(step?.next, nf), nf);
@@ -229,7 +314,7 @@ export default function VisualNovel({
   return (
     <section
       className="vn"
-      onClick={handleAdvance}
+      onClick={handleStageClick}
       role="presentation"
     >
       <div className="vn__panel">
