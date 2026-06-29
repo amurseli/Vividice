@@ -1,3 +1,5 @@
+import { url } from './url';
+
 /* Flags acumuladas durante la partida (siempre strings; los booleanos se
    guardan como "true"/"false" y se comparan por string). */
 export type Flags = Record<string, string>;
@@ -57,9 +59,11 @@ export function isMusicStop(music: string): boolean {
   return music === '' || music === 'none' || music === 'stop';
 }
 
-/* URL del tema a partir de su id (encodeado por si tiene espacios/símbolos). */
+/* URL del tema a partir de su id (encodeado por si tiene espacios/símbolos).
+   Pasa por url() para respetar el `base` del sitio (ej: /Vividice) en
+   producción; si no, en deploys con subpath daría 404. */
 export function musicSrc(id: string): string {
-  return `/music/${encodeURIComponent(id)}.mp3`;
+  return url(`music/${encodeURIComponent(id)}.mp3`);
 }
 
 export type Script = { start: string; steps: Record<string, Step> };
