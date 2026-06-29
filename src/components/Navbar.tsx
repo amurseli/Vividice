@@ -17,7 +17,8 @@ const LINKS: NavLink[] = [
   { href: '/lugares', label: 'Lugares' },
   { href: '/historias', label: 'Historias' },
   { href: '/guia-del-mundo', label: 'Guía del Mundo' },
-  { href: '/mapa', label: 'Mapa' },
+  /* Oculto por ahora (no borrar): descomentar para volver a mostrar el Mapa. */
+  // { href: '/mapa', label: 'Mapa' },
 ];
 
 type Props = {
