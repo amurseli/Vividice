@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { Flags, Option, Script, Step } from '../lib/narrative';
 import { parseRich, resolveNext, resolveText, visibleOptions } from '../lib/narrative';
 import './VisualNovel.css';
@@ -86,6 +87,9 @@ export default function VisualNovel({
   /* Texto parseado a caracteres con estilo + pausas (efectos inline). */
   const rich = useMemo(() => parseRich(text), [text]);
   const options: Option[] = step ? visibleOptions(step, liveFlags) : [];
+  /* Con muchas opciones (6+), en vez de filas las orbitamos alrededor de la
+     pregunta, girando lento. */
+  const isOrbit = options.length >= 6;
   /* Las opciones se agrupan de a 2 por fila (3 → 2 arriba + 1 abajo). */
   const optionRows: Option[][] = [];
   for (let r = 0; r < options.length; r += 2) optionRows.push(options.slice(r, r + 2));
@@ -267,7 +271,7 @@ export default function VisualNovel({
         </p>
 
         <div className="vn__after">
-          {ready && hasOptions && (
+          {ready && hasOptions && !isOrbit && (
             <div className="vn__options">
               {optionRows.map((row, r) => (
                 <div className="vn__row" key={r} data-single={row.length === 1}>
@@ -336,6 +340,30 @@ export default function VisualNovel({
           )}
         </div>
       </div>
+
+      {ready && hasOptions && isOrbit && (
+        <ul className="vn__orbit" aria-label="Opciones">
+          {options.map((opt, i) => (
+            <li
+              className="vn__orbiter"
+              key={i}
+              style={{ '--a': `${(360 / options.length) * i}deg` } as CSSProperties}
+            >
+              <button
+                type="button"
+                className="vn__option vn__option--orbit"
+                aria-label={opt.label}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  choose(opt);
+                }}
+              >
+                <WavyText text={opt.label} dur={3 + i * 0.4} phase={i * 0.5} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

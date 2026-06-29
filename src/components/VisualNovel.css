@@ -147,6 +147,56 @@
   }
 }
 
+/* ── Layout orbital (6+ opciones) ────────────────────────────────────────
+   Las opciones giran lentamente en torno a la pregunta (centro de pantalla).
+   El anillo entero rota; cada botón contra-rota para mantener el texto
+   derecho. Las posiciones se reparten con --a (ángulo) por opción y --r
+   (radio) compartido. */
+.vn__orbit {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Cada orbiter va en la misma celda → todos centrados y superpuestos en el
+     centro, desde donde el transform los empuja al círculo. */
+  display: grid;
+  place-items: center;
+  /* Sólo los botones reciben clicks; el resto del anillo deja pasar. */
+  pointer-events: none;
+  z-index: 1;
+  --r: clamp(150px, 34vmin, 340px);
+  animation: vn-fade-in-1 600ms ease both, vn-orbit-spin 90s linear infinite;
+}
+
+.vn__orbiter {
+  grid-area: 1 / 1;
+  /* Coloca en el círculo (ángulo --a, radio --r) y deja el texto derecho. */
+  transform: rotate(var(--a)) translate(var(--r)) rotate(calc(-1 * var(--a)));
+}
+
+.vn__option--orbit {
+  pointer-events: auto;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  /* Contra-rota el giro del anillo para que el texto no se vuelque. */
+  animation: vn-orbit-spin 90s linear infinite reverse;
+}
+
+@keyframes vn-orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vn-fade-in-1 {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Campo de nombre: sin caja ni botón. Las letras tipeadas se muestran con el
    mismo estilo ondulado que las opciones, seguidas de un cursor parpadeante. */
 .vn__namefill {
@@ -288,5 +338,12 @@
   }
   .vn__text {
     transition: none;
+  }
+  /* El anillo queda quieto (sigue siendo circular, pero no gira). */
+  .vn__orbit {
+    animation: none;
+  }
+  .vn__option--orbit {
+    animation: none;
   }
 }

@@ -129,6 +129,14 @@
   @keyframes pv-wave { 0%,100% { transform: translateY(0.14em) } 50% { transform: translateY(-0.14em) } }
   .pv__opts { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-direction: column; gap: 12px; align-items: center; }
   .pv__opts button { min-width: 16rem; padding: 12px 24px; }
+  /* Orbital (6+ opciones): giran lento en torno a la pregunta. */
+  .pv__orbit { position: fixed; inset: 0; margin: 0; padding: 0; list-style: none;
+    display: grid; place-items: center; pointer-events: none;
+    --r: clamp(150px, 34vmin, 340px); animation: pv-orbit-spin 90s linear infinite; }
+  .pv__orbiter { grid-area: 1 / 1; transform: rotate(var(--a)) translate(var(--r)) rotate(calc(-1 * var(--a))); }
+  .pv__oorbit { pointer-events: auto; min-width: 0; padding: 8px 16px;
+    animation: pv-orbit-spin 90s linear infinite reverse; }
+  @keyframes pv-orbit-spin { to { transform: rotate(360deg) } }
   .pv__arrow { margin-top: 28px; font-size: 1.6rem; color: var(--muted); opacity: .5; }
   .pv__close { position: fixed; top: 16px; right: 20px; font-size: 13px; color: var(--muted); }
 
@@ -1125,16 +1133,24 @@ function pvDone(id) {
   const step = script.steps[id], after = $('#pvAfter'); after.innerHTML = '';
   const k = kindOf(step);
   if (k === 'choice') {
-    const ul = el('ul', { className: 'pv__opts' });
-    for (const opt of pvOptions(step)) {
-      const b = el('button', { textContent: opt.label });
+    const opts = pvOptions(step);
+    const orbit = opts.length >= 6;     // 6+ opciones: layout orbital
+    const ul = el('ul', { className: orbit ? 'pv__orbit' : 'pv__opts' });
+    opts.forEach((opt, i) => {
+      const b = el('button', { textContent: opt.label, className: orbit ? 'pv__oorbit' : '' });
       b.onclick = (e) => {
         e.stopPropagation();
         if (opt.set) Object.assign(pv.flags, opt.set);
         pvGo('next' in opt ? (opt.next || null) : pvNext(step.next));
       };
-      ul.append(el('li', {}, b));
-    }
+      if (orbit) {
+        const li = el('li', { className: 'pv__orbiter' }, b);
+        li.style.setProperty('--a', (360 / opts.length) * i + 'deg');
+        ul.append(li);
+      } else {
+        ul.append(el('li', {}, b));
+      }
+    });
     after.append(ul);
   } else if (k === 'input') {
     const spec = step.input, max = spec.max ?? 20, min = spec.min ?? 1;
