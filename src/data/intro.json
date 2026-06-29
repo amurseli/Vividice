@@ -228,7 +228,7 @@
       "next": "13a-4a-8"
     },
     "13a-4a-6": {
-      "text": "Este es mundo consumido por la avaricia y el deseo de los pocos.{{600}} Un mundo dónde todos se contentan con sobrevivir, más no soñar.",
+      "text": "Este es un mundo consumido por la avaricia y el deseo de los pocos.{{600}} Un mundo dónde todos se contentan con sobrevivir, más no soñar.",
       "next": "13a-4a-7"
     },
     "13a-4a-5": {
@@ -542,7 +542,7 @@
       "next": "13a-1"
     },
     "13a-1": {
-      "text": "Momento tras momento,{{600}} [[wave accent]]{nombre}[[/]]{{600}}, mis yemas ennegrecidas me susurran más.",
+      "text": "Momento tras momento,\n{{600}} [[wave accent]]{nombre}[[/]]{{600}}, mis yemas ennegrecidas me susurran más.",
       "next": "13a-2"
     },
     "13c-1": {
