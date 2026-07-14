@@ -94,3 +94,142 @@ a:hover {
   color: var(--color-text);
   text-decoration: none;
 }
+
+/* Prosa: estilos del cuerpo markdown renderizado (<Content /> envuelto en
+   .prose en las páginas de detalle). */
+.prose {
+  font-size: 1.05rem;
+}
+
+.prose p {
+  margin: 0 0 var(--space-4);
+}
+
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-family: var(--font-serif);
+  line-height: 1.2;
+  margin: var(--space-5) 0 var(--space-2);
+}
+
+.prose ul,
+.prose ol {
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-4);
+}
+
+.prose li {
+  margin: var(--space-1) 0;
+}
+
+.prose blockquote {
+  margin: var(--space-4) 0;
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Contiene los floats de las figuras para que no se derramen sobre el footer. */
+.prose::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
+/* Red de seguridad: ninguna imagen del cuerpo desborda, aunque no sea figura. */
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+.prose figure {
+  margin: var(--space-5) 0;
+}
+
+.prose figure img {
+  display: block;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+.prose figcaption {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Figuras ubicadas (right/left/out): marco tipo infobox. */
+.prose .figure--right,
+.prose .figure--left,
+.prose .figure--out {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-2);
+}
+
+.prose .figure--right figcaption,
+.prose .figure--left figcaption,
+.prose .figure--out figcaption {
+  text-align: left;
+  margin: var(--space-2) var(--space-1) var(--space-1);
+}
+
+.prose .figure--right {
+  float: right;
+  width: clamp(180px, 40%, 280px);
+  margin: var(--space-1) 0 var(--space-3) var(--space-4);
+}
+
+.prose .figure--left {
+  float: left;
+  width: clamp(180px, 40%, 280px);
+  margin: var(--space-1) var(--space-4) var(--space-3) 0;
+}
+
+/* Estilo Wikipedia: empujada al gutter derecho, fuera de la columna de texto. */
+.prose .figure--out {
+  float: right;
+  width: clamp(240px, 26vw, 340px);
+  margin: var(--space-1) 0 var(--space-3) var(--space-4);
+  margin-right: calc(-1 * clamp(0rem, 14vw, 16rem));
+}
+
+/* Breakout: más ancha que la columna, centrada respecto al viewport. */
+.prose .figure--full {
+  width: min(92vw, 1000px);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 900px) {
+  .prose .figure--out {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .prose .figure--right,
+  .prose .figure--left,
+  .prose .figure--out {
+    float: none;
+    width: 100%;
+    margin: var(--space-5) 0;
+  }
+
+  .prose .figure--right figcaption,
+  .prose .figure--left figcaption,
+  .prose .figure--out figcaption {
+    text-align: center;
+  }
+
+  .prose .figure--full {
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+}

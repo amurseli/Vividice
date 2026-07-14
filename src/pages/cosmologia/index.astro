@@ -1,0 +1,58 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EntryCard from '../../components/EntryCard.astro';
+import {
+  CATEGORIAS,
+  categoriaDe,
+  urlCategoria,
+  type Concepto,
+} from '../../lib/cosmologia';
+
+const todos = await getCollection('cosmologia');
+
+const counts = new Map<string, number>();
+for (const c of todos as Concepto[]) {
+  const cat = categoriaDe(c);
+  if (!cat) continue;
+  counts.set(cat.slug, (counts.get(cat.slug) ?? 0) + 1);
+}
+---
+
+<BaseLayout title="Cosmología" width="full">
+  <h1>Cosmología</h1>
+  <p class="intro">
+    La magia, las fuerzas y los conceptos que dan forma a Vivídice.
+  </p>
+
+  <ul class="categorias-list">
+    {
+      CATEGORIAS.map((cat, i) => (
+        <li>
+          <EntryCard
+            href={urlCategoria(cat)}
+            title={cat.label}
+            kicker={`Categoría · ${String(i + 1).padStart(2, '0')}`}
+            description={`${counts.get(cat.slug) ?? 0} entradas`}
+            variant="section"
+          />
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>
+
+<style>
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+  }
+  .categorias-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+</style>

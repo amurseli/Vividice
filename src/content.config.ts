@@ -103,4 +103,26 @@ const personajes = defineCollection({
   }),
 });
 
-export const collections = { lugares, personajes };
+const cosmologia = defineCollection({
+  loader: glob({
+    pattern: '**/*.md',
+    base: `${VIVIDICE_BASE}/3- Cosmología`,
+    generateId: ({ entry }) => {
+      const filename = entry.split('/').pop() ?? entry;
+      return filename.replace(/\.md$/, '').toLowerCase();
+    },
+  }),
+  /* Todo opcional: una entry puede ser un .md con solo texto, sin frontmatter.
+     El nombre para mostrar se deriva del filename vía nombreDe() si falta. */
+  schema: z.object({
+    nombre: z.string().nullish(),
+    descripcionCorta: z.string().nullish(),
+    imagen: z.string().nullish(),
+    aliases: z
+      .array(z.string().nullable())
+      .nullish()
+      .transform((arr) => (arr ?? []).filter((v): v is string => Boolean(v))),
+  }),
+});
+
+export const collections = { lugares, personajes, cosmologia };

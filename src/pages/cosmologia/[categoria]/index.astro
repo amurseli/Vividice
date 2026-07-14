@@ -1,0 +1,91 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EntryCard from '../../../components/EntryCard.astro';
+import {
+  CATEGORIAS,
+  categoriaDe,
+  nombreDe,
+  urlConcepto,
+  type CategoriaCosmologia,
+  type Concepto,
+} from '../../../lib/cosmologia';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  return CATEGORIAS.map((cat) => ({
+    params: { categoria: cat.slug },
+    props: { categoria: cat },
+  }));
+}
+
+type Props = { categoria: CategoriaCosmologia };
+const { categoria } = Astro.props;
+
+const todos = await getCollection('cosmologia');
+const enCategoria = (todos as Concepto[])
+  .filter((c) => categoriaDe(c)?.slug === categoria.slug)
+  .sort((a, b) => nombreDe(a).localeCompare(nombreDe(b), 'es'));
+---
+
+<BaseLayout title={categoria.label}>
+  <p class="breadcrumb">
+    <a href={url('cosmologia')}>Cosmología</a>
+    <span aria-hidden="true">›</span>
+    <span>{categoria.label}</span>
+  </p>
+  <h1>{categoria.label}</h1>
+  <p class="intro">{enCategoria.length} {enCategoria.length === 1 ? 'entrada' : 'entradas'}.</p>
+
+  {enCategoria.length > 0 ? (
+    <div class="cosmologia-grid">
+      {enCategoria.map((c) => (
+        <EntryCard
+          href={urlConcepto(c)}
+          title={nombreDe(c)}
+          description={c.data.descripcionCorta}
+          imagen={c.data.imagen}
+          imagenAlt={nombreDe(c)}
+        />
+      ))}
+    </div>
+  ) : (
+    <p class="empty">Todavía no hay entradas en esta categoría.</p>
+  )}
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-2);
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+  }
+  .cosmologia-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+  .empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+  @media (max-width: 640px) {
+    .cosmologia-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

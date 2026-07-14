@@ -1,51 +1,49 @@
 ---
-/*
-  Detalle de una entry: /lugares/<categoria-slug>/<entry-slug>
-  Genera una página por cada entry de cada categoría.
-*/
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import {
   categoriaDe,
+  nombreDe,
   urlCategoria,
-  type Lugar,
-} from '../../../lib/lugares';
+  type Concepto,
+} from '../../../lib/cosmologia';
 import { url } from '../../../lib/url';
 
 export async function getStaticPaths() {
-  const lugares = await getCollection('lugares');
-  return lugares
-    .map((lugar: Lugar) => {
-      const cat = categoriaDe(lugar);
+  const conceptos = await getCollection('cosmologia');
+  return (conceptos as Concepto[])
+    .map((concepto) => {
+      const cat = categoriaDe(concepto);
       if (!cat) return null;
       return {
-        params: { categoria: cat.slug, slug: lugar.id },
-        props: { lugar },
+        params: { categoria: cat.slug, slug: concepto.id },
+        props: { concepto },
       };
     })
-    .filter((p: unknown): p is NonNullable<typeof p> => p !== null);
+    .filter((p): p is NonNullable<typeof p> => p !== null);
 }
 
-type Props = { lugar: Lugar };
-const { lugar } = Astro.props;
-const cat = categoriaDe(lugar);
+type Props = { concepto: Concepto };
+const { concepto } = Astro.props;
+const cat = categoriaDe(concepto);
 
-const { Content } = await render(lugar);
-const { nombre, tipo, region, aliases } = lugar.data;
+const { Content } = await render(concepto);
+const nombre = nombreDe(concepto);
+const { aliases } = concepto.data;
 ---
 
 <BaseLayout title={nombre}>
   <article>
     <p class="breadcrumb">
-      <a href={url('lugares')}>Lugares</a>
+      <a href={url('cosmologia')}>Cosmología</a>
       <span aria-hidden="true">›</span>
       {cat && <a href={urlCategoria(cat)}>{cat.label}</a>}
       {cat && <span aria-hidden="true">›</span>}
       <span>{nombre}</span>
     </p>
 
-    <header class="lugar-header">
-      <p class="kicker">{tipo}{region ? ` · ${region}` : ''}</p>
+    <header class="concepto-header">
+      {cat && <p class="kicker">{cat.label}</p>}
       <h1>{nombre}</h1>
 
       {aliases.length > 0 && (
@@ -76,7 +74,7 @@ const { nombre, tipo, region, aliases } = lugar.data;
     color: var(--color-accent);
     text-decoration: none;
   }
-  .lugar-header {
+  .concepto-header {
     border-bottom: 1px solid var(--color-border);
     padding-bottom: var(--space-4);
     margin-bottom: var(--space-5);

@@ -4,13 +4,16 @@ import { readdirSync } from 'node:fs';
 
 import react from '@astrojs/react';
 import remarkWikilinks from './src/lib/remark-wikilinks.mjs';
+import rehypeFigures from './src/lib/rehype-figures.mjs';
 import { CATEGORIAS } from './src/lib/categorias.data.mjs';
 import { REINOS } from './src/lib/reinos.data.mjs';
+import { CATEGORIAS_COSMOLOGIA } from './src/lib/cosmologia.data.mjs';
 
 const BRAIN_PATH = process.env.BRAIN_PATH ?? '/home/agusda/Documents/Brain';
 const SITE_BASE = '/Vividice';
 const LUGARES_BASE = `${BRAIN_PATH}/Brain/Ficción/Vivídice/2 - Lugares`;
 const ENTIDADES_BASE = `${BRAIN_PATH}/Brain/Ficción/Vivídice/1- Entidades`;
+const COSMOLOGIA_BASE = `${BRAIN_PATH}/Brain/Ficción/Vivídice/3- Cosmología`;
 
 function buildLugaresHrefMap() {
   const map = new Map();
@@ -48,9 +51,28 @@ function buildPersonajesHrefMap() {
   return map;
 }
 
+function buildCosmologiaHrefMap() {
+  const map = new Map();
+  for (const cat of CATEGORIAS_COSMOLOGIA) {
+    const dir = `${COSMOLOGIA_BASE}/${cat.folder}`;
+    try {
+      for (const file of readdirSync(dir)) {
+        if (!file.endsWith('.md')) continue;
+        const slug = file.replace(/\.md$/, '').toLowerCase();
+        map.set(slug, `${SITE_BASE}/cosmologia/${cat.slug}/${slug}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[wikilinks] No se pudo leer ${dir}: ${msg}`);
+    }
+  }
+  return map;
+}
+
 const lugaresHref = buildLugaresHrefMap();
 const personajesHref = buildPersonajesHrefMap();
-const hrefMap = new Map([...lugaresHref, ...personajesHref]);
+const cosmologiaHref = buildCosmologiaHrefMap();
+const hrefMap = new Map([...lugaresHref, ...personajesHref, ...cosmologiaHref]);
 
 // https://astro.build/config
 export default defineConfig({
@@ -59,5 +81,6 @@ export default defineConfig({
   integrations: [react()],
   markdown: {
     remarkPlugins: [[remarkWikilinks, { hrefMap }]],
+    rehypePlugins: [[rehypeFigures, { base: SITE_BASE }]],
   },
 });

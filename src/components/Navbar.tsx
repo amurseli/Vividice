@@ -16,6 +16,7 @@ const LINKS: NavLink[] = [
   { href: '/personajes', label: 'Personajes' },
   { href: '/lugares', label: 'Lugares' },
   { href: '/historias', label: 'Historias' },
+  { href: '/cosmologia', label: 'Cosmología' },
   { href: '/guia-del-mundo', label: 'Guía del Mundo' },
   /* Oculto por ahora (no borrar): descomentar para volver a mostrar el Mapa. */
   // { href: '/mapa', label: 'Mapa' },
