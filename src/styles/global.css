@@ -105,12 +105,70 @@ a:hover {
   margin: 0 0 var(--space-4);
 }
 
+/* Encabezados del cuerpo: jerarquía temática con acento y aire. */
+.prose h2,
+.prose h3,
 .prose h4,
 .prose h5,
 .prose h6 {
   font-family: var(--font-serif);
   line-height: 1.2;
+}
+
+/* h2: divisor de sección mayor, con hairline al pie. */
+.prose h2 {
+  font-size: clamp(1.9rem, 3.4vw, 2.5rem);
+  margin: var(--space-6) 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* h3: sección, con barrita de acento debajo. */
+.prose h3 {
+  position: relative;
+  font-size: clamp(1.55rem, 2.8vw, 2rem);
+  margin: var(--space-6) 0 var(--space-4);
+  padding-bottom: var(--space-2);
+}
+
+.prose h3::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 2.5rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-accent);
+}
+
+/* h4: subtítulo (el más usado), en rojo con línea que se desvanece. */
+.prose h4 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-size: clamp(1.35rem, 2.3vw, 1.7rem);
+  margin: var(--space-6) 0 var(--space-3);
+  color: var(--color-accent);
+}
+
+.prose h4::after {
+  content: '';
+  flex: 1;
+  align-self: center;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-accent) 45%, transparent),
+    transparent
+  );
+}
+
+.prose h5,
+.prose h6 {
+  font-size: 1.15rem;
   margin: var(--space-5) 0 var(--space-2);
+  color: var(--color-text-muted);
 }
 
 .prose ul,
@@ -123,12 +181,45 @@ a:hover {
   margin: var(--space-1) 0;
 }
 
+/* Epígrafe: cita destacada centrada, tono literario. */
 .prose blockquote {
-  margin: var(--space-4) 0;
-  padding: var(--space-1) 0 var(--space-1) var(--space-4);
-  border-left: 3px solid var(--color-accent);
-  color: var(--color-text-muted);
+  margin: var(--space-6) auto;
+  max-width: 56ch;
+  padding: 0;
+  border: none;
+  text-align: center;
+  font-family: var(--font-serif);
   font-style: italic;
+  font-size: 1.3rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+/* Lo dicho entre comillas: rojo de acento. La narración queda en color normal. */
+.prose .dicho {
+  color: var(--color-accent);
+}
+
+.prose blockquote p {
+  margin: 0 0 var(--space-2);
+}
+
+/* Atribución del epígrafe (línea que arranca con raya). */
+.prose blockquote .cita__fuente {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-3);
+}
+
+/* Diálogo: parlamentos con raya, uno por línea. */
+.prose .dialogo {
+  white-space: pre-line;
+  margin: var(--space-4) 0;
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--color-border);
+  line-height: 1.9;
 }
 
 /* Contiene los floats de las figuras para que no se derramen sobre el footer. */

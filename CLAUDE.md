@@ -55,6 +55,13 @@ Zod schemas defensively handle Obsidian's quirks: fields use `.nullish()` (Obsid
 
 Markdown body images render as wiki-style figures via the `src/lib/rehype-figures.mjs` rehype plugin (registered in `astro.config.mjs` with `{ base: SITE_BASE }`). It (1) prefixes the site base onto `/`-rooted image `src`s — Astro does **not** do this for raw markdown `![]()`, so a bare `/foo.jpg` would 404 on GitHub Pages — and (2) wraps a lone-image paragraph in `<figure>` + `<figcaption>` (caption = the `alt` text). The image `title` selects placement via the `PLACEMENT` map: none = centered block; `right`/`left` = float inside the column (framed, text wraps); `right-out` (aka `out`/`aparte`) = margin figure pushed into the right gutter, Wikipedia-style; `full` = breakout wider than the column. **Authoring rule:** floats only wrap text that comes *after* them in source order, so place a floating image *before* the paragraph it should sit beside. Put the file in `public/` (repo, e.g. `public/cosmologia/`) and write `![Caption](/cosmologia/foo.jpg "right-out")`. Styles (`.figure--right/left/out/full`, plus a `.prose::after` clearfix) live under `.prose` in `global.css`; detail pages wrap `<Content />` in `<div class="prose">`.
 
+### Quotes & dialogue
+
+The same `rehype-figures.mjs` plugin also styles in-world quotes:
+- A markdown blockquote (`>`) renders as a centered serif **epigraph**. A paragraph inside it that starts with a dash (`—`/`--`) becomes the attribution (`.cita__fuente`, dashes → `— `).
+- A plain paragraph whose 2+ lines each start with a dash is auto-detected as **dialogue** (`.dialogo`, `white-space: pre-line`, dashes → `— `) — authors type dash-led dialogue naturally.
+- **Standard: quoted text is red.** Inside epigraphs and dialogue, any run between quotation marks (`"` `“” ` `«»`) is wrapped in `<span class="dicho">` (accent color) — the spoken phrase pops red, the narration/attribution stays normal. `wrapQuotes` toggles on each quote char and spans inline elements (e.g. `**bold**` inside a quote). Styles under `.prose` in `global.css`.
+
 ### Layout / rendering
 
 - `src/layouts/BaseLayout.astro` is the shared shell. Its `width` prop (`narrow` | `wide` | `full` | `bleed`) controls the main container; `hideNav`/`hideFooter`/`transparentNav` handle fullscreen pages.
