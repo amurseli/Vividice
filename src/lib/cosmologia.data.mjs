@@ -17,4 +17,9 @@ export const CATEGORIAS_COSMOLOGIA = [
     folder: 'Fé y Deidades',
     label: 'Fe y Deidades',
   },
+  {
+    slug: 'organizaciones-y-ordenes',
+    folder: 'Organizaciones y Órdenes',
+    label: 'Organizaciones y Órdenes',
+  },
 ];
