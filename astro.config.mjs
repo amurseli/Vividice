@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import { readdirSync } from 'node:fs';
 
 import react from '@astrojs/react';
+import remarkHideSections from './src/lib/remark-hide-sections.mjs';
 import remarkWikilinks from './src/lib/remark-wikilinks.mjs';
 import rehypeFigures from './src/lib/rehype-figures.mjs';
 import { CATEGORIAS } from './src/lib/categorias.data.mjs';
@@ -80,7 +81,9 @@ export default defineConfig({
   base: '/Vividice',
   integrations: [react()],
   markdown: {
-    remarkPlugins: [[remarkWikilinks, { hrefMap }]],
+    /* remarkHideSections primero: elimina secciones marcadas con `!` antes de
+       procesar wikilinks sobre contenido que se va a borrar. */
+    remarkPlugins: [remarkHideSections, [remarkWikilinks, { hrefMap }]],
     rehypePlugins: [[rehypeFigures, { base: SITE_BASE }]],
   },
 });
