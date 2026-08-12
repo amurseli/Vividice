@@ -36,7 +36,7 @@ function buildLugaresHrefMap() {
 
 function buildPersonajesHrefMap() {
   const map = new Map();
-  for (const reino of REINOS) {
+  for (const reino of REINOS) { 
     const dir = `${ENTIDADES_BASE}/${reino.folder}`;
     try {
       for (const file of readdirSync(dir)) {
