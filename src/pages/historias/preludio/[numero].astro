@@ -2,23 +2,30 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import ShaderBackground from '../../../components/ShaderBackground.tsx';
 import VisualNovel from '../../../components/VisualNovel.tsx';
-import { PRELUDIOS } from '../../../lib/preludios';
+import { PRELUDIOS, bgDePreludio } from '../../../lib/preludios';
 import { url } from '../../../lib/url';
 
 export async function getStaticPaths() {
-  return Object.entries(PRELUDIOS).map(([numero, script]) => ({
+  return Object.entries(PRELUDIOS).map(([numero, p]) => ({
     params: { numero },
-    props: { script },
+    props: { script: p.script, bg: bgDePreludio(p) },
   }));
 }
 
-const { script } = Astro.props;
+const { script, bg } = Astro.props;
 ---
 
 <BaseLayout title="Preludio" width="bleed" hideFooter hideNav>
   <div class="intro-stage">
     <div class="intro-stage__bg">
-      <ShaderBackground client:only="react" />
+      <ShaderBackground
+        client:only="react"
+        color={bg.color}
+        direction={bg.direction}
+        intensity={bg.intensity}
+        speed={bg.speed}
+        seed={bg.seed}
+      />
     </div>
     <VisualNovel client:load script={script} skipHref={url('historias')} />
   </div>
