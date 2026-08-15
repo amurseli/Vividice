@@ -1,0 +1,72 @@
+{
+  "start": "1",
+  "steps": {
+    "1": {
+      "text": "Los primeros ataques de verdad ocurrieron pocos meses después de que Argados se convirtiera en un Imperio.",
+      "next": "2",
+      "music": "memoria"
+    },
+    "2": {
+      "text": "No hubo aviso.",
+      "next": "3"
+    },
+    "3": {
+      "text": "Los registros kamascos afirman avistar decenas de puntos negros en simultaneo en el horizonte, tanto en la costa Septentrional como Meridional.",
+      "next": "4"
+    },
+    "4": {
+      "text": "En únicamente tres días, la armada argadia conquistó velozmente más de una cuarta parte del territorio kamasco. Territorio disperso y lejano a la capital, pero territorio al fin.",
+      "options": [
+        {
+          "label": "¿Y la gente?",
+          "next": "5a"
+        },
+        {
+          "label": "¿Y el reino?",
+          "next": "5b"
+        }
+      ],
+      "next": ""
+    },
+    "5a-7": {
+      "text": "y ese es el origen del refrán  [[wave accent]]\"Más terco que un kamasco sin su playa\"[[/]]"
+    },
+    "5a-6": {
+      "text": "...",
+      "next": "5a-7",
+      "music": "none"
+    },
+    "5a-5": {
+      "text": "A día de hoy,{{600}} tres siglos después, el Palacio de Acero sigue de pie en su capital. Su gente todavía se alista voluntariamente a pelear por su tierra. [[wave]]Aborrecen a su conquistador.[[/]]",
+      "next": "5a-6"
+    },
+    "5a-4": {
+      "text": "...en cuestión de{{800}} [[wave]]años[[/]]...",
+      "next": "5a-5"
+    },
+    "5a-3": {
+      "text": "...en cuestión de{{800}} [[wave]]meses[[/]]...",
+      "next": "5a-4"
+    },
+    "5a-2": {
+      "text": "El mundo creyó que Kamasco caería en cuestión de [[wave]]semanas[[/]].",
+      "next": "5a-3"
+    },
+    "5b-1": {
+      "text": "Los miles de pescadores de toda ciudad pasando el Río Rápido se vieron obligados a converirse en mendigos o prostitutas, moviendose hacia pueblos en el interior.",
+      "next": "5a-2"
+    },
+    "5a-1": {
+      "text": "Argados asesinó lo justo y necesario, obligando a los miles de pequeños asentamientos a vaciarse y trasladarse tierra arriba.",
+      "next": "5a-2"
+    },
+    "5a": {
+      "text": "Miles peregrinaron hasta Ciudad Ascua, buscando refugio en una ciudad rápidamente sobrepasada.",
+      "next": "5a-1"
+    },
+    "5b": {
+      "text": "Fue un movimiento inteligente. no se concentró en una invasión terrestre, sino que conquistó las costas, matando la mayor parte del comercio interno kamasco. ",
+      "next": "5b-1"
+    }
+  }
+}

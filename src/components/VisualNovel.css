@@ -49,6 +49,14 @@
   transform: translateY(-0.9em);
 }
 
+/* Palabra: caja atómica que NO se corta por dentro. Agrupa las letras (las
+   onduladas son inline-block y sin esto el navegador partiría la palabra en
+   cualquier letra). El corte de línea queda solo en los espacios entre palabras. */
+.vn__word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
 /* Cada letra entra con un fade-in al montarse. Inline (no inline-block)
    para no romper el wrapping de palabras. */
 .vn__char {

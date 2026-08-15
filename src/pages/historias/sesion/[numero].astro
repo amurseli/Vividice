@@ -1,0 +1,71 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { ordenarSesiones } from '../../../lib/sesiones';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  const sesiones = ordenarSesiones(await getCollection('sesiones'));
+  /* Las desactivadas (hidden) no generan página: solo se ven en la línea. */
+  return sesiones
+    .filter((s) => !s.hidden)
+    .map((s) => ({
+      params: { numero: String(s.numero) },
+      props: { info: s },
+    }));
+}
+
+const { info } = Astro.props;
+const num = String(info.numero).padStart(2, '0');
+const { Content } = await render(info.entry);
+---
+
+<BaseLayout title={`Sesión ${num} — ${info.titulo}`}>
+  <article>
+    <p class="breadcrumb">
+      <a href={url('historias')}>Historias</a>
+      <span aria-hidden="true">›</span>
+      <span>Sesión {num}</span>
+    </p>
+
+    <header class="sesion-header">
+      <p class="kicker">Sesión {num}</p>
+      <h1>{info.titulo}</h1>
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-4);
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .sesion-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .kicker {
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    margin: 0 0 var(--space-2);
+  }
+</style>

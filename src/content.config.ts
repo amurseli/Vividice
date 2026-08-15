@@ -12,9 +12,17 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'zod';
+import { pathToFileURL } from 'node:url';
 
 const BRAIN_PATH = process.env.BRAIN_PATH ?? '/home/agusda/Documents/Brain';
 const VIVIDICE_BASE = `${BRAIN_PATH}/Brain/Ficción/Vivídice`;
+
+/* base de cada colección como file:// URL. En Windows una ruta con letra de
+   unidad (ej. Q:\...) hace que Astro interprete "Q:" como scheme de URL al
+   resolver `new URL(base, root)` y el build revienta ("The URL must be of
+   scheme file"). pathToFileURL la vuelve un file:// válido; en Linux/CI el
+   resultado es equivalente al string path de antes. */
+const brainDir = (sub: string) => pathToFileURL(`${VIVIDICE_BASE}/${sub}/`);
 
 const lugares = defineCollection({
   // pattern recursivo: agarra los .md adentro de las subcarpetas de categoría
@@ -23,7 +31,7 @@ const lugares = defineCollection({
   // se deriva del filePath en runtime vía src/lib/lugares.ts.
   loader: glob({
     pattern: '**/*.md',
-    base: `${VIVIDICE_BASE}/2 - Lugares`,
+    base: brainDir('2 - Lugares'),
     generateId: ({ entry }) => {
       const filename = entry.split('/').pop() ?? entry;
       return filename.replace(/\.md$/, '').toLowerCase();
@@ -74,7 +82,7 @@ const lugares = defineCollection({
 const personajes = defineCollection({
   loader: glob({
     pattern: '**/*.md',
-    base: `${VIVIDICE_BASE}/1- Entidades`,
+    base: brainDir('1- Entidades'),
     generateId: ({ entry }) => {
       const filename = entry.split('/').pop() ?? entry;
       return filename.replace(/\.md$/, '').toLowerCase();
@@ -106,7 +114,7 @@ const personajes = defineCollection({
 const cosmologia = defineCollection({
   loader: glob({
     pattern: '**/*.md',
-    base: `${VIVIDICE_BASE}/3- Cosmología`,
+    base: brainDir('3- Cosmología'),
     generateId: ({ entry }) => {
       const filename = entry.split('/').pop() ?? entry;
       return filename.replace(/\.md$/, '').toLowerCase();
@@ -125,4 +133,34 @@ const cosmologia = defineCollection({
   }),
 });
 
-export const collections = { lugares, personajes, cosmologia };
+/* Sesiones y recaps. Sin frontmatter obligatorio: el número y el título salen
+   del nombre de archivo ("NN - Título.md"), parseados en src/lib/sesiones.ts.
+   Los archivos que no siguen ese patrón (borradores, "Sin título", etc.) se
+   cargan igual pero el sitio los ignora al no poder derivarles un número.
+   pattern no-recursivo: solo los .md sueltos en la carpeta. */
+const sesiones = defineCollection({
+  loader: glob({
+    pattern: '*.md',
+    base: brainDir('4- Sesiones y recaps'),
+    generateId: ({ entry }) => {
+      const filename = entry.split('/').pop() ?? entry;
+      return filename.replace(/\.md$/, '').toLowerCase();
+    },
+  }),
+  /* Todo opcional; overrides por si alguna vez hace falta forzar algo. */
+  schema: z.object({
+    titulo: z.string().nullish(),
+    sesion: z.number().nullish(),
+    descripcionCorta: z.string().nullish(),
+    imagen: z.string().nullish(),
+    /* Desactiva la sesión: sigue apareciendo en la línea de tiempo pero su caja
+       queda deshabilitada (no se puede abrir el recap ni se genera su página).
+       Se controla desde el frontmatter de Obsidian: `hidden: true/false`. */
+    hidden: z.preprocess(
+      (v) => (typeof v === 'string' ? v.trim().toLowerCase() === 'true' : v),
+      z.boolean().nullish(),
+    ),
+  }),
+});
+
+export const collections = { lugares, personajes, cosmologia, sesiones };

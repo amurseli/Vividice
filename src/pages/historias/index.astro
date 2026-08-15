@@ -1,35 +1,453 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ShaderBackground from '../../components/ShaderBackground.tsx';
-import VisualNovel from '../../components/VisualNovel.tsx';
-import intro from '../../data/intro.json';
+import { HISTORIAS } from '../../lib/historias.data.mjs';
+import { ordenarSesiones, urlSesion } from '../../lib/sesiones';
+import { tienePreludio } from '../../lib/preludios';
 import { url } from '../../lib/url';
+
+/* Sesiones reales desde Brain (carpeta "4- Sesiones y recaps"), por número. */
+const sesiones = ordenarSesiones(await getCollection('sesiones'));
+
+/* Historias intermedias (VN locales, ver historias.data.mjs). */
+const intermedias = HISTORIAS.filter((h) => h.tipo === 'intermedia');
+
+/* Línea de tiempo unificada: las sesiones ordenan por su número; las
+   intermedias por su campo `orden`. Todo junto, ordenado. */
+const items = [
+  ...sesiones.map((s) => ({
+    kind: 'sesion' as const,
+    orden: s.numero,
+    numero: s.numero,
+    titulo: s.titulo,
+    hidden: s.hidden,
+    preludio: tienePreludio(s.numero),
+  })),
+  ...intermedias.map((h) => ({
+    kind: 'intermedia' as const,
+    orden: h.orden ?? 999,
+    slug: h.slug,
+    titulo: h.titulo,
+    descripcion: h.descripcion,
+    /* Etiqueta editable desde historias.data.mjs (campo `kicker`).
+       '' la oculta; sin campo, cae a "Historia intermedia". */
+    kicker: h.kicker ?? 'Historia intermedia',
+  })),
+].sort((a, b) => a.orden - b.orden);
 ---
 
-<BaseLayout title="Historias" width="bleed" hideFooter hideNav>
-  <div class="intro-stage">
-    <div class="intro-stage__bg">
-      <ShaderBackground client:only="react" />
-    </div>
-    <VisualNovel
-      client:load
-      script={intro}
-      skipHref={url('guia-del-mundo')}
-      collectKey={import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '96869b57-121c-4693-b919-1be2f990ca2f'}
+<BaseLayout title="Historias" width="wide">
+  <div class="hist-bg" aria-hidden="true">
+    <ShaderBackground
+      client:only="react"
+      seed={0.42}
+      color="#29d0e6"
+      intensity={0.95}
+      direction={1}
+      speed={0.09}
     />
   </div>
+
+  <header class="hist-head" data-reveal>
+    <h1>Historias</h1>
+    <p class="hist-intro">
+      Sesiones, sus preludios y relatos sueltos del mundo de Vivídice.
+    </p>
+  </header>
+
+  <ol class="timeline">
+    {
+      items.map((it) =>
+        it.kind === 'sesion' ? (
+          <li class="tl-item tl-item--sesion" data-reveal>
+            {it.preludio ? (
+              <a class="tl-prelude" href={url('historias', 'preludio', String(it.numero))}>
+                <span class="tl-prelude__label">Preludio</span>
+                <span class="tl-prelude__arrow" aria-hidden="true">←</span>
+              </a>
+            ) : (
+              <span class="tl-prelude tl-prelude--soon" aria-disabled="true">
+                <span class="tl-prelude__label">Preludio</span>
+                <span class="tl-prelude__soon">próximamente</span>
+              </span>
+            )}
+
+            {it.hidden ? (
+              <div class="tl-node tl-node--sesion tl-node--locked" aria-disabled="true">
+                <div class="tl-node__inner">
+                  <p class="tl-kicker">Sesión {String(it.numero).padStart(2, '0')}</p>
+                  <h2 class="tl-title">{it.titulo}</h2>
+                  <span class="tl-soon">próximamente</span>
+                </div>
+              </div>
+            ) : (
+              <a class="tl-node tl-node--sesion" href={urlSesion(it.numero)} data-sheen>
+                <span class="tl-sheen" aria-hidden="true"></span>
+                <div class="tl-node__inner">
+                  <p class="tl-kicker">Sesión {String(it.numero).padStart(2, '0')}</p>
+                  <h2 class="tl-title">{it.titulo}</h2>
+                  <span class="tl-arrow" aria-hidden="true">→</span>
+                </div>
+              </a>
+            )}
+          </li>
+        ) : (
+          <li class="tl-item tl-item--intermedia" data-reveal>
+            <a
+              class="tl-node tl-node--intermedia"
+              href={url('historias', 'intermedias', it.slug)}
+              data-sheen
+            >
+              <span class="tl-sheen" aria-hidden="true"></span>
+              <div class="tl-node__inner">
+                {it.kicker && <p class="tl-kicker">{it.kicker}</p>}
+                <h2 class="tl-title">{it.titulo}</h2>
+                {it.descripcion && <p class="tl-desc">{it.descripcion}</p>}
+                <span class="tl-arrow" aria-hidden="true">→</span>
+              </div>
+            </a>
+          </li>
+        ),
+      )
+    }
+  </ol>
 </BaseLayout>
 
 <style>
-  .intro-stage {
-    position: relative;
-    width: 100%;
-    height: 100dvh;
-    overflow: hidden;
-  }
-  .intro-stage__bg {
-    position: absolute;
+  /* Fondo animado: el mismo shader Perlin/FBM de la intro/home, fijo detrás de
+     todo el contenido, con un velo radial para mantener el texto legible. */
+  .hist-bg {
+    position: fixed;
     inset: 0;
     z-index: 0;
+    pointer-events: none;
+  }
+  /* Velo suave: oscurece apenas los bordes para legibilidad, dejando que el
+     shader se note en el grueso de la pantalla. */
+  .hist-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 50% 30%,
+      transparent 45%,
+      color-mix(in srgb, var(--color-bg) 55%, transparent) 100%
+    );
+  }
+
+  .hist-head {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    margin-bottom: var(--space-6);
+  }
+  .hist-intro {
+    color: var(--color-text-muted);
+    margin: var(--space-2) 0 0;
+  }
+
+  /* Línea de tiempo: nodos como "cuentas" equidistantes sobre una línea
+     vertical central. */
+  .timeline {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    margin: 0 auto;
+    padding: 0;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--color-border) 6%,
+      var(--color-border) 94%,
+      transparent
+    );
+    z-index: -1;
+  }
+
+  .tl-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    column-gap: var(--space-4);
+  }
+
+  /* Nodo base. */
+  .tl-node {
+    grid-column: 2;
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: var(--space-4) var(--space-5);
+    text-align: center;
+    color: inherit;
+    text-decoration: none;
+    box-shadow: 0 0 0 6px var(--color-bg), 0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+  .tl-node:hover {
+    text-decoration: none;
+  }
+  .tl-node__inner {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Sesión: el objeto central y grande, con el shader viviendo dentro. */
+  .tl-node--sesion {
+    min-width: min(440px, 62vw);
+    background: var(--color-surface);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+    --sheen-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  }
+  .tl-node--sesion:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 6px var(--color-bg), 0 16px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Sesión desactivada (hidden): visible en la línea pero sin abrir el recap. */
+  .tl-node--locked {
+    opacity: 0.55;
+    cursor: default;
+    border-color: var(--color-border);
+  }
+  .tl-node--locked:hover {
+    transform: none;
+    border-color: var(--color-border);
+    box-shadow: 0 0 0 6px var(--color-bg), 0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Historia intermedia: sobre la misma línea pero visiblemente distinta
+     (borde cian punteado, algo más chica, todo el nodo es un link). */
+  .tl-node--intermedia {
+    display: block;
+    min-width: min(380px, 56vw);
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--color-accent-2) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-accent-2) 7%, var(--color-surface));
+    --sheen-color: color-mix(in srgb, var(--color-accent-2) 30%, transparent);
+    transition: transform 200ms ease, border-color 200ms ease;
+  }
+  .tl-node--intermedia:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-accent-2);
+    text-decoration: none;
+  }
+  .tl-node--intermedia .tl-kicker {
+    color: var(--color-accent-2);
+  }
+
+  /* Brillo que sigue al cursor (interacción con el mouse, liviana). */
+  .tl-sheen {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 220ms ease;
+    background: radial-gradient(
+      220px circle at var(--mx, 50%) var(--my, 50%),
+      var(--sheen-color, transparent),
+      transparent 65%
+    );
+  }
+  .tl-node:hover .tl-sheen {
+    opacity: 1;
+  }
+
+  .tl-kicker {
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.72rem;
+    margin: 0 0 var(--space-2);
+  }
+  .tl-title {
+    font-family: var(--font-serif);
+    margin: 0;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    line-height: 1.1;
+    color: var(--color-text);
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+  }
+  .tl-desc {
+    color: var(--color-text-muted);
+    font-size: 0.92rem;
+    margin: var(--space-2) 0 0;
+  }
+  /* Flecha (reemplaza al texto "Ver recap / Leer"): toda la caja es el link. */
+  .tl-arrow {
+    display: inline-block;
+    margin-top: var(--space-3);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--color-accent);
+    transition: transform 150ms ease;
+  }
+  .tl-node--intermedia .tl-arrow {
+    color: var(--color-accent-2);
+  }
+  .tl-node:hover .tl-arrow {
+    transform: translateX(4px);
+  }
+  .tl-soon {
+    display: inline-block;
+    margin-top: var(--space-3);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+
+  /* Preludio: a la IZQUIERDA de la sesión (columna 1, pegado al nodo). */
+  .tl-prelude {
+    grid-column: 1;
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+    white-space: nowrap;
+  }
+  .tl-prelude__arrow {
+    font-size: 1.1em;
+    transition: transform 150ms ease;
+  }
+  a.tl-prelude:hover {
+    background: var(--color-accent);
+    color: #fff;
+    transform: translateX(-2px);
+    text-decoration: none;
+  }
+  a.tl-prelude:hover .tl-prelude__arrow {
+    transform: translateX(-3px);
+  }
+  .tl-prelude--soon {
+    flex-direction: column;
+    gap: 0;
+    align-items: flex-end;
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+    background: transparent;
+    cursor: default;
+  }
+  .tl-prelude__soon {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-style: italic;
+    opacity: 0.8;
+  }
+
+  /* Revelado al scrollear. */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 500ms ease, transform 500ms ease;
+  }
+  [data-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Mobile: la línea se corre a la izquierda, los nodos se apilan y el botón
+     de preludio pasa arriba del nodo. */
+  @media (max-width: 720px) {
+    .timeline {
+      max-width: 100%;
+    }
+    .timeline::before {
+      left: 14px;
+    }
+    .tl-item {
+      grid-template-columns: 1fr;
+      justify-items: start;
+      row-gap: var(--space-3);
+      padding-left: 40px;
+    }
+    .tl-node,
+    .tl-node--intermedia,
+    .tl-prelude {
+      grid-column: 1;
+      justify-self: start;
+      min-width: 0;
+      width: 100%;
+      text-align: left;
+      box-shadow: none;
+    }
+    .tl-prelude--soon {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-2);
+      width: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal] {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .tl-node,
+    .tl-node--intermedia,
+    .tl-prelude,
+    .tl-sheen {
+      transition: none;
+    }
   }
 </style>
+
+<script>
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Revelado progresivo de los nodos al entrar al viewport. */
+  const items = document.querySelectorAll('[data-reveal]');
+  if (reduce || !('IntersectionObserver' in window)) {
+    items.forEach((el) => el.classList.add('is-visible'));
+  } else {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-visible');
+            io.unobserve(e.target);
+          }
+        }
+      },
+      { threshold: 0.2 },
+    );
+    items.forEach((el) => io.observe(el));
+  }
+
+  /* Brillo que sigue al cursor sobre cada nodo. */
+  document.querySelectorAll('[data-sheen]').forEach((node) => {
+    node.addEventListener('pointermove', (e) => {
+      const r = node.getBoundingClientRect();
+      node.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+      node.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+    });
+  });
+</script>

@@ -24,9 +24,17 @@ const FRAGMENT_SRC = `
      Lo usamos para desplazar la región de noise y la fase de tiempo,
      de modo que dos shaders con seeds distintos no se vean idénticos. */
   uniform float u_seed;
+  /* Parametrizables por instancia:
+       u_color     color del "fluido" que aparece sobre el negro
+       u_dir       dirección (vec2) hacia donde se desplaza el flujo
+       u_intensity brillo general
+       u_speed     velocidad del movimiento */
+  uniform vec3 u_color;
+  uniform vec2 u_dir;
+  uniform float u_intensity;
+  uniform float u_speed;
 
-  const vec3 BG  = vec3(0.0, 0.0, 0.0);
-  const vec3 RED = vec3(0.4, 0.0, 0.0);
+  const vec3 BG = vec3(0.0, 0.0, 0.0);
 
   vec4 permute(vec4 x) {
     return mod(((x * 34.0) + 1.0) * x, 289.0);
@@ -80,7 +88,7 @@ const FRAGMENT_SRC = `
     vec2 fragUv = gl_FragCoord.xy / u_resolution.xy;
     vec2 uv = fragUv;
     uv.x *= u_resolution.x / u_resolution.y;
-    float t = u_time * 0.07;
+    float t = u_time * u_speed;
 
     /* Offset por seed: los 47.1 y 31.7 son números arbitrarios (primos
        para evitar repeticiones obvias). Cada instancia ve una región
@@ -92,13 +100,13 @@ const FRAGMENT_SRC = `
     vec2 wuv = uv;
 
     vec2 q = vec2(
-      fbm(wuv + vec2(0.00, 0.00) + t),
-      fbm(wuv + vec2(5.20, 1.30) + t * 0.9)
+      fbm(wuv + vec2(0.00, 0.00) + u_dir * t),
+      fbm(wuv + vec2(5.20, 1.30) + u_dir * (t * 0.9))
       );
       
       vec2 r = vec2(
-        fbm(wuv + 2.8 * q + vec2(1.70, 9.20) + t * 0.7),
-      fbm(wuv + 2.8 * q + vec2(8.30, 2.80) + t * 0.5)
+        fbm(wuv + 2.8 * q + vec2(1.70, 9.20) + u_dir * (t * 0.7)),
+      fbm(wuv + 2.8 * q + vec2(8.30, 2.80) + u_dir * (t * 0.5))
       );
       
     float f = fbm(wuv + 2.8 * r);
@@ -108,9 +116,9 @@ const FRAGMENT_SRC = `
        dejando la mayor parte de la pantalla en negro. */
     float redAmt = smoothstep(0.58, 0.78, f);
 
-    vec3 color = mix(BG, RED, redAmt);
+    vec3 color = mix(BG, u_color, redAmt);
 
-    color *= 0.40;
+    color *= u_intensity;
 
     gl_FragColor = vec4(color, 1.0);
   }
@@ -133,14 +141,36 @@ function compileShader(
   return shader;
 }
 
+/* '#rrggbb' | '#rgb' -> [r, g, b] en 0..1. */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
 type Props = {
   /* Valor arbitrario (típico 0..1) que desplaza la región del noise y la
      fase del tiempo. Útil para que múltiples instancias del shader en la
      misma página no se vean idénticas. */
   seed?: number;
+  /* Color del fluido (hex). Default: rojo tenue original (0.4, 0, 0). */
+  color?: string;
+  /* Dirección del movimiento en grados. Default: flujo diagonal original. */
+  direction?: number;
+  /* Brillo general. Default 0.40 (el look original). Subir para que se note más. */
+  intensity?: number;
+  /* Velocidad del movimiento. Default 0.07. */
+  speed?: number;
 };
 
-export default function ShaderBackground({ seed = 0 }: Props) {
+export default function ShaderBackground({
+  seed = 0,
+  color,
+  direction,
+  intensity = 0.4,
+  speed = 0.07,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -182,8 +212,26 @@ export default function ShaderBackground({ seed = 0 }: Props) {
     const resLoc = gl.getUniformLocation(program, 'u_resolution');
     const timeLoc = gl.getUniformLocation(program, 'u_time');
     const seedLoc = gl.getUniformLocation(program, 'u_seed');
-    /* El seed no cambia con el tiempo, lo seteamos una vez. */
+    const colorLoc = gl.getUniformLocation(program, 'u_color');
+    const dirLoc = gl.getUniformLocation(program, 'u_dir');
+    const intensityLoc = gl.getUniformLocation(program, 'u_intensity');
+    const speedLoc = gl.getUniformLocation(program, 'u_speed');
+
+    /* Estos no cambian con el tiempo: se setean una sola vez. */
     gl.uniform1f(seedLoc, seed);
+    const rgb = color ? hexToRgb(color) : [0.4, 0.0, 0.0];
+    gl.uniform3f(colorLoc, rgb[0], rgb[1], rgb[2]);
+    /* Sin direction: flujo diagonal original (vec2(1,1)). Con direction: ángulo. */
+    const dir =
+      direction == null
+        ? [1.0, 1.0]
+        : [
+            Math.cos((direction * Math.PI) / 180),
+            Math.sin((direction * Math.PI) / 180),
+          ];
+    gl.uniform2f(dirLoc, dir[0], dir[1]);
+    gl.uniform1f(intensityLoc, intensity);
+    gl.uniform1f(speedLoc, speed);
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -235,7 +283,7 @@ export default function ShaderBackground({ seed = 0 }: Props) {
       gl.deleteShader(fs);
       gl.deleteBuffer(buffer);
     };
-  }, [seed]);
+  }, [seed, color, direction, intensity, speed]);
 
   return (
     <canvas

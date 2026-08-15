@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ShaderBackground from '../../../components/ShaderBackground.tsx';
+import VisualNovel from '../../../components/VisualNovel.tsx';
+import { HISTORIAS } from '../../../lib/historias.data.mjs';
+import intro from '../../../data/intro.json';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  /* Mapa slug -> guion (JSON), estático (Astro/Vite lo empaqueta). Va DENTRO de
+     getStaticPaths porque ahí sólo hay acceso a los imports, no a las const del
+     frontmatter. Sumar una historia intermedia = otro import + otra entrada acá,
+     más su objeto en historias.data.mjs. El guion viaja por props. */
+  const SCRIPTS = { prologo: intro };
+  return HISTORIAS.filter((h) => h.tipo === 'intermedia' && SCRIPTS[h.slug]).map(
+    (h) => ({ params: { slug: h.slug }, props: { historia: h, script: SCRIPTS[h.slug] } }),
+  );
+}
+
+const { historia, script } = Astro.props;
+---
+
+<BaseLayout title={historia.titulo} width="bleed" hideFooter hideNav>
+  <div class="intro-stage">
+    <div class="intro-stage__bg">
+      <ShaderBackground client:only="react" />
+    </div>
+    <VisualNovel
+      client:load
+      script={script}
+      skipHref={url('historias')}
+      collectKey={import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '96869b57-121c-4693-b919-1be2f990ca2f'}
+    />
+  </div>
+</BaseLayout>
+
+<style>
+  .intro-stage {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .intro-stage__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+</style>

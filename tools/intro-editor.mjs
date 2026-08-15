@@ -4,7 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SCRIPT_PATH = resolve(here, '..', 'src', 'data', 'intro.json');
+/* Historia a editar: `npm run editor -- <nombre>` o STORY=<nombre> (con o sin
+   .json). Default: intro.json. Los guiones viven en src/data/. */
+const STORY = process.argv[2] || process.env.STORY || 'intro';
+const SCRIPT_FILE = STORY.endsWith('.json') ? STORY : `${STORY}.json`;
+const SCRIPT_PATH = resolve(here, '..', 'src', 'data', SCRIPT_FILE);
 const HTML_PATH = resolve(here, 'intro-editor.html');
 const MUSIC_DIR = resolve(here, '..', 'public', 'music');
 const PORT = Number(process.env.PORT) || 4330;
@@ -38,8 +42,18 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && req.url === '/api/script') {
-      const raw = await readFile(SCRIPT_PATH, 'utf8');
-      return send(res, 200, raw);
+      try {
+        const raw = await readFile(SCRIPT_PATH, 'utf8');
+        return send(res, 200, raw);
+      } catch {
+        /* Historia nueva (archivo aún inexistente): un nodo vacío. Se crea al
+           guardar (PUT). */
+        return send(
+          res,
+          200,
+          JSON.stringify({ start: '1', steps: { 1: { text: '' } } }, null, 2),
+        );
+      }
     }
 
     /* Lista de temas disponibles (basenames sin .mp3) en public/music. */

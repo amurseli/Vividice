@@ -124,6 +124,9 @@
   .pv { max-width: 60ch; text-align: center; }
   .pv__text { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 2.2rem); line-height: 1.4; min-height: 1.4em; margin: 0; }
   .pv__char { animation: fadein .5s ease both; }
+  /* Palabra: caja atómica que no se corta por dentro (las letras onduladas son
+     inline-block; sin esto el navegador partiría palabras en cualquier letra). */
+  .pv__word { display: inline-block; white-space: nowrap; }
   @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
   .pv__wave { display: inline-block; white-space: pre; animation: pv-wave 3.2s ease-in-out infinite; }
   @keyframes pv-wave { 0%,100% { transform: translateY(0.14em) } 50% { transform: translateY(-0.14em) } }
@@ -1131,13 +1134,19 @@ function parseRichEd(raw) {
   return { chars, pauses };
 }
 function pvAppendChar(c, idx) {
-  if (c.ch === '\n') { $('#pvText').append(document.createElement('br')); return; }
+  const box = $('#pvText');
+  /* Salto y espacio cierran la palabra actual (son puntos de corte de línea). */
+  if (c.ch === '\n') { pv.wordEl = null; box.append(document.createElement('br')); return; }
+  if (c.ch === ' ') { pv.wordEl = null; box.append(el('span', { className: 'pv__char', textContent: ' ' })); return; }
+  /* Las letras se acumulan en una "palabra" (inline-block, sin corte interno)
+     para que las onduladas nunca partan la palabra al medio. */
+  if (!pv.wordEl) { pv.wordEl = el('span', { className: 'pv__word' }); box.append(pv.wordEl); }
   let style = c.color ? 'color:' + c.color + ';' : '';
   if (c.wave) style += `animation-delay:${idx * -0.09}s;animation-duration:3.2s;`;
-  $('#pvText').append(el('span', {
+  pv.wordEl.append(el('span', {
     className: c.wave ? 'pv__char pv__wave' : 'pv__char',
     style,
-    textContent: c.ch === ' ' ? ' ' : c.ch,
+    textContent: c.ch,
   }));
 }
 function pvMatches(cond) {
@@ -1184,7 +1193,7 @@ function pvType(id) {
   pvMusic(step.music);
   if (step.set) Object.assign(pv.flags, step.set);
   pv.id = id; pv.rich = parseRichEd(pvText(step));
-  $('#pvText').innerHTML = ''; $('#pvAfter').innerHTML = '';
+  $('#pvText').innerHTML = ''; $('#pvAfter').innerHTML = ''; pv.wordEl = null;
   pv.typing = true;
   const total = pv.rich.chars.length;
   if (total === 0) { pv.typing = false; return pvDone(id); }
@@ -1198,7 +1207,7 @@ function pvType(id) {
 }
 function pvComplete() {
   pvStop();
-  $('#pvText').innerHTML = '';
+  $('#pvText').innerHTML = ''; pv.wordEl = null;
   pv.rich.chars.forEach((c, idx) => pvAppendChar(c, idx));
   pvDone(pv.id);
 }

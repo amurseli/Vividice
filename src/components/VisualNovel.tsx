@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
-import type { Flags, Option, Script, Step } from '../lib/narrative';
+import type { CSSProperties, ReactNode } from 'react';
+import type { Flags, Option, RichChar, Script, Step } from '../lib/narrative';
 import {
   isMusicStop,
   musicSrc,
@@ -27,23 +27,104 @@ const END_FADE = 5000;
    velocidad y `phase` desfasa la onda (para desincronizar varias palabras).
    Reutilizable: opciones, el nombre y lo que venga. */
 function WavyText({ text, dur = 3.2, phase = 0 }: { text: string; dur?: number; phase?: number }) {
+  /* Se agrupa por palabras (cada una inline-block, sin corte interno) para que
+     las letras onduladas nunca partan una palabra al medio; el corte de línea
+     queda solo en los espacios. El desfase usa el índice absoluto de letra para
+     que la onda siga siendo continua entre palabras. */
+  const tokens = text.split(/(\s+)/);
+  const nodes: ReactNode[] = [];
+  let i = 0;
+  tokens.forEach((tok, ti) => {
+    if (tok === '') return;
+    if (/^\s+$/.test(tok)) {
+      nodes.push(<span key={`s${ti}`}>{' '}</span>);
+      i += tok.length;
+      return;
+    }
+    const start = i;
+    const letters = tok.split('').map((ch, k) => (
+      <span
+        key={start + k}
+        className="vn__owave"
+        aria-hidden="true"
+        style={{
+          animationDuration: `${dur}s`,
+          animationDelay: `${(phase + (start + k) * 0.09) * -1}s`,
+        }}
+      >
+        {ch}
+      </span>
+    ));
+    i += tok.length;
+    nodes.push(
+      <span className="vn__word" key={`w${ti}`}>
+        {letters}
+      </span>,
+    );
+  });
+  return <>{nodes}</>;
+}
+
+/* Un caracter del texto narrativo: ondulado (inline-block, animado) o plano. */
+function charSpan(c: RichChar, i: number): ReactNode {
+  if (c.wave) {
+    return (
+      <span
+        key={i}
+        className="vn__owave"
+        style={{
+          color: c.color ?? undefined,
+          animationDelay: `${i * -0.09}s`,
+          animationDuration: '3.2s',
+        }}
+      >
+        {c.ch}
+      </span>
+    );
+  }
   return (
-    <>
-      {text.split('').map((ch, j) => (
-        <span
-          key={j}
-          className="vn__owave"
-          aria-hidden="true"
-          style={{
-            animationDuration: `${dur}s`,
-            animationDelay: `${(phase + j * 0.09) * -1}s`,
-          }}
-        >
-          {ch === ' ' ? ' ' : ch}
-        </span>
-      ))}
-    </>
+    <span key={i} className="vn__char" style={c.color ? { color: c.color } : undefined}>
+      {c.ch}
+    </span>
   );
+}
+
+/* Renderiza los caracteres agrupándolos en palabras que no se cortan. Las
+   letras onduladas son inline-block (cajas atómicas) y sin esto el navegador
+   partiría palabras en cualquier letra; agrupando, el corte queda solo en los
+   espacios y los \n. */
+function renderChars(chars: RichChar[]): ReactNode[] {
+  const out: ReactNode[] = [];
+  let word: ReactNode[] = [];
+  let wordKey = 0;
+  const flush = () => {
+    if (word.length) {
+      out.push(
+        <span className="vn__word" key={`w${wordKey}`}>
+          {word}
+        </span>,
+      );
+      word = [];
+    }
+  };
+  chars.forEach((c, i) => {
+    if (c.ch === '\n') {
+      flush();
+      out.push(<br key={`b${i}`} />);
+    } else if (c.ch === ' ') {
+      flush();
+      out.push(
+        <span className="vn__char" key={`s${i}`}>
+          {' '}
+        </span>,
+      );
+    } else {
+      if (word.length === 0) wordKey = i;
+      word.push(charSpan(c, i));
+    }
+  });
+  flush();
+  return out;
 }
 
 type Props = {
@@ -330,31 +411,7 @@ export default function VisualNovel({
     >
       <div className="vn__panel">
         <p className={`vn__text${done && hasOptions ? ' vn__text--lift' : ''}`}>
-          {rich.chars.slice(0, revealed).map((c, i) =>
-            c.ch === '\n' ? (
-              <br key={i} />
-            ) : c.wave ? (
-              <span
-                key={i}
-                className="vn__owave"
-                style={{
-                  color: c.color ?? undefined,
-                  animationDelay: `${i * -0.09}s`,
-                  animationDuration: '3.2s',
-                }}
-              >
-                {c.ch === ' ' ? ' ' : c.ch}
-              </span>
-            ) : (
-              <span
-                key={i}
-                className="vn__char"
-                style={c.color ? { color: c.color } : undefined}
-              >
-                {c.ch}
-              </span>
-            ),
-          )}
+          {renderChars(rich.chars.slice(0, revealed))}
         </p>
 
         <div className="vn__after">
