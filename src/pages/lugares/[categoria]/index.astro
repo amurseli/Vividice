@@ -10,7 +10,10 @@ import EntryCard from '../../../components/EntryCard.astro';
 import {
   CATEGORIAS,
   categoriaDe,
+  nombreDe,
+  subcarpetaDe,
   urlLugar,
+  urlSubcarpeta,
   type Categoria,
   type Lugar,
 } from '../../../lib/lugares';
@@ -38,18 +41,32 @@ const enCategoria = todos.filter(
   (l: Lugar) => categoriaDe(l)?.slug === categoria.slug,
 );
 
+/* Entries directas en la categoría vs. las anidadas en subcarpetas. */
+const directos = enCategoria.filter((l: Lugar) => subcarpetaDe(l) === null);
+
+const subMap = new Map<string, number>();
+for (const l of enCategoria) {
+  const sub = subcarpetaDe(l);
+  if (sub) subMap.set(sub, (subMap.get(sub) ?? 0) + 1);
+}
+const subcarpetas = [...subMap.entries()]
+  .map(([nombre, count]) => ({ nombre, count }))
+  .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
 const heroId = HEROES[categoria.slug];
-const hero = heroId ? enCategoria.find((l: Lugar) => l.id === heroId) : undefined;
-const resto = enCategoria
+const hero = heroId ? directos.find((l: Lugar) => l.id === heroId) : undefined;
+const resto = directos
   .filter((l: Lugar) => l.id !== heroId)
-  .sort((a: Lugar, b: Lugar) => a.data.nombre.localeCompare(b.data.nombre));
+  .sort((a: Lugar, b: Lugar) => nombreDe(a).localeCompare(nombreDe(b), 'es'));
 
 function toCardProps(lugar: Lugar) {
-  const { nombre, tipo, region, descripcionCorta, imagen } = lugar.data;
+  const { region, descripcionCorta, imagen } = lugar.data;
+  const nombre = nombreDe(lugar);
+  const kicker = [lugar.data.tipo, region].filter(Boolean).join(' · ') || null;
   return {
     href: urlLugar(lugar),
     title: nombre,
-    kicker: `${tipo}${region ? ` · ${region}` : ''}`,
+    kicker,
     description: descripcionCorta,
     imagen,
     imagenAlt: nombre,
@@ -64,10 +81,27 @@ function toCardProps(lugar: Lugar) {
     <span>{categoria.label}</span>
   </p>
   <h1>{categoria.label}</h1>
-  <p class="intro">{enCategoria.length} entradas.</p>
+  <p class="intro">
+    {directos.length} entradas{subcarpetas.length > 0 &&
+      ` · ${subcarpetas.length} carpeta${subcarpetas.length > 1 ? 's' : ''}`}.
+  </p>
 
   <div class="layout">
     {hero && <EntryCard {...toCardProps(hero)} variant="hero" />}
+
+    {subcarpetas.length > 0 && (
+      <div class="lugares-grid">
+        {subcarpetas.map((s) => (
+          <EntryCard
+            href={urlSubcarpeta(categoria, s.nombre)}
+            title={s.nombre}
+            kicker="Carpeta"
+            description={`${s.count} entrada${s.count > 1 ? 's' : ''}`}
+            variant="section"
+          />
+        ))}
+      </div>
+    )}
 
     {resto.length > 0 && (
       <div class="lugares-grid">
@@ -75,7 +109,7 @@ function toCardProps(lugar: Lugar) {
       </div>
     )}
 
-    {!hero && resto.length === 0 && (
+    {!hero && resto.length === 0 && subcarpetas.length === 0 && (
       <p class="empty">Todavía no hay entradas en esta categoría.</p>
     )}
   </div>

@@ -38,7 +38,10 @@ const lugares = defineCollection({
     },
   }),
   schema: z.object({
-    nombre: z.string(),
+    /* nombre/tipo opcionales: una entry puede ser un stub (un .md vacío recién
+       creado en Obsidian) sin que rompa el build. El nombre a mostrar cae al
+       filename vía nombreDe() en src/lib/lugares.ts. */
+    nombre: z.string().nullish(),
     /* preprocess normaliza mayúsculas/acentos antes del enum check.
        Obsidian no fuerza un formato; aceptamos "Región", "region", etc. */
     tipo: z.preprocess(
@@ -56,7 +59,7 @@ const lugares = defineCollection({
         'edificio', 'estructura', 'ruina',
         'bosque', 'montana', 'rio',
         'otro',
-      ]),
+      ]).nullish().catch(null),
     ),
 
     /* nullish() acepta string | null | undefined.

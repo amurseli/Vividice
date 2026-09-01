@@ -22,4 +22,9 @@ export const CATEGORIAS_COSMOLOGIA = [
     folder: 'Organizaciones y Órdenes',
     label: 'Organizaciones y Órdenes',
   },
+  {
+    slug: 'burocracia-y-sistemas',
+    folder: 'Burocracia y Sistemas',
+    label: 'Burocracia y Sistemas',
+  },
 ];

@@ -7,6 +7,7 @@ import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import {
   categoriaDe,
+  nombreDe,
   urlCategoria,
   type Lugar,
 } from '../../../lib/lugares';
@@ -31,7 +32,9 @@ const { lugar } = Astro.props;
 const cat = categoriaDe(lugar);
 
 const { Content } = await render(lugar);
-const { nombre, tipo, region, aliases } = lugar.data;
+const { region, aliases } = lugar.data;
+const nombre = nombreDe(lugar);
+const kicker = [lugar.data.tipo, region].filter(Boolean).join(' · ');
 ---
 
 <BaseLayout title={nombre}>
@@ -45,7 +48,7 @@ const { nombre, tipo, region, aliases } = lugar.data;
     </p>
 
     <header class="lugar-header">
-      <p class="kicker">{tipo}{region ? ` · ${region}` : ''}</p>
+      {kicker && <p class="kicker">{kicker}</p>}
       <h1>{nombre}</h1>
 
       {aliases.length > 0 && (

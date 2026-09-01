@@ -1,0 +1,121 @@
+---
+/*
+  Listado de una subcarpeta dentro de una categoría de Lugares:
+  /lugares/<categoria>/grupo/<subcarpeta>
+  El segmento "grupo" evita chocar con la ruta de detalle /lugares/<cat>/<slug>.
+*/
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import EntryCard from '../../../../components/EntryCard.astro';
+import {
+  categoriaDe,
+  nombreDe,
+  subcarpetaDe,
+  slugSubcarpeta,
+  urlLugar,
+  urlCategoria,
+  type Categoria,
+  type Lugar,
+} from '../../../../lib/lugares';
+import { url } from '../../../../lib/url';
+
+export async function getStaticPaths() {
+  const todos = await getCollection('lugares');
+  const seen = new Set<string>();
+  const paths = [];
+  for (const l of todos as Lugar[]) {
+    const cat = categoriaDe(l);
+    const sub = subcarpetaDe(l);
+    if (!cat || !sub) continue;
+    const key = `${cat.slug}/${slugSubcarpeta(sub)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    paths.push({
+      params: { categoria: cat.slug, grupo: slugSubcarpeta(sub) },
+      props: { categoria: cat, subcarpeta: sub },
+    });
+  }
+  return paths;
+}
+
+type Props = { categoria: Categoria; subcarpeta: string };
+const { categoria, subcarpeta } = Astro.props;
+
+const todos = await getCollection('lugares');
+const entradas = (todos as Lugar[])
+  .filter(
+    (l) => categoriaDe(l)?.slug === categoria.slug && subcarpetaDe(l) === subcarpeta,
+  )
+  .sort((a, b) => nombreDe(a).localeCompare(nombreDe(b), 'es'));
+
+function toCardProps(lugar: Lugar) {
+  const { region, descripcionCorta, imagen } = lugar.data;
+  const nombre = nombreDe(lugar);
+  const kicker = [lugar.data.tipo, region].filter(Boolean).join(' · ') || null;
+  return {
+    href: urlLugar(lugar),
+    title: nombre,
+    kicker,
+    description: descripcionCorta,
+    imagen,
+    imagenAlt: nombre,
+  };
+}
+---
+
+<BaseLayout title={subcarpeta}>
+  <p class="breadcrumb">
+    <a href={url('lugares')}>Lugares</a>
+    <span aria-hidden="true">›</span>
+    <a href={urlCategoria(categoria)}>{categoria.label}</a>
+    <span aria-hidden="true">›</span>
+    <span>{subcarpeta}</span>
+  </p>
+  <h1>{subcarpeta}</h1>
+  <p class="intro">{entradas.length} entradas.</p>
+
+  {entradas.length > 0 ? (
+    <div class="lugares-grid">
+      {entradas.map((lugar: Lugar) => <EntryCard {...toCardProps(lugar)} />)}
+    </div>
+  ) : (
+    <p class="empty">Todavía no hay entradas en esta carpeta.</p>
+  )}
+</BaseLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 var(--space-2);
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+  .breadcrumb a:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+  }
+  .lugares-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+  .empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+  @media (max-width: 640px) {
+    .lugares-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

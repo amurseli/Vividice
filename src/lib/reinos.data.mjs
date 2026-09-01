@@ -9,4 +9,5 @@
 export const REINOS = [
   { slug: 'sel',     folder: 'Sel',     label: 'Sel',     subtitle: 'El Alto Reino' },
   { slug: 'kamasco', folder: 'Kamasco', label: 'Kamasco', subtitle: 'Templado a Fuego Irisado'  },
+  { slug: 'islas-cercanas', folder: 'Islas Cercanas', label: 'Islas Cercanas', subtitle: 'El Archipiélago' },
 ];
